@@ -1,0 +1,185 @@
+import { useState } from 'react';
+import { FirebaseConfig, SaveSlot } from '../types';
+import { FirebaseService } from '../services/firebaseService';
+
+export function useWorldManager(
+  firebaseRef: React.MutableRefObject<FirebaseService>,
+  setNotification: (notif: { title: string; message: string; type?: 'info' | 'warning' | 'success' | 'error' } | null) => void,
+  setView: (view: any) => void,
+  setSettings: (settings: any) => void,
+  settings: any
+) {
+  const [worldId, setWorldId] = useState<string | null>(null);
+  const [appMode, setAppMode] = useState<'offline' | 'online'>('offline');
+  const [serverName, setServerName] = useState("Offline");
+  const [totalServerCount, setTotalServerCount] = useState(0);
+  const [currentPinCode, setCurrentPinCode] = useState<string>("");
+  const [isOfflineMode, setIsOfflineMode] = useState(false);
+  const [currentFirebaseConfig, setCurrentFirebaseConfig] = useState<FirebaseConfig | null>(null);
+  const [slots, setSlots] = useState<SaveSlot[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  const handleJoinWorld = async (id: string, mode: 'offline' | 'online') => {
+    setWorldId(id);
+    setAppMode(mode);
+    setView('saves');
+    
+    firebaseRef.current.saveLastSession({
+      slotId: null,
+      worldId: id,
+      appMode: mode,
+      serverName: mode === 'offline' ? 'Cục bộ' : serverName,
+      currentView: 'saves'
+    });
+  };
+
+  const handlePreloadOnline = async (
+    id: string,
+    config: FirebaseConfig,
+    name: string,
+    pinCode: string,
+    bypassPin: boolean = false
+  ) => {
+    try {
+      await firebaseRef.current.initialize(config, name);
+      setCurrentFirebaseConfig(config);
+      const result = await firebaseRef.current.connectWorld(id, pinCode, bypassPin);
+      setServerName(name);
+      setWorldId(result.normalizedId);
+      setTotalServerCount(result.count);
+      setCurrentPinCode(pinCode);
+      
+      firebaseRef.current.saveLastSession({
+        slotId: null,
+        worldId: result.normalizedId,
+        appMode: 'online',
+        serverName: name,
+        firebaseConfig: config,
+        pinCode: pinCode,
+        currentView: 'saves'
+      });
+      
+      if (result.error === 'QUOTA_EXCEEDED_CACHE_MISS') {
+          setIsOfflineMode(true);
+          setNotification({ 
+              title: 'Chế độ ngoại tuyến', 
+              message: 'Máy chủ đang quá tải. Bạn đang dùng dữ liệu lưu trên máy. Game sẽ tự đồng bộ khi có mạng lại.',
+              type: 'warning' 
+          });
+      } else {
+          setIsOfflineMode(false);
+      }
+      
+      return { success: true, count: result.count, exists: result.exists, error: result.error };
+    } catch (e: any) {
+      return { success: false, count: 0, exists: false, error: e.message };
+    }
+  };
+
+  const getLocalSlotsForWorld = (wId: string): SaveSlot[] => {
+    const localSlots: SaveSlot[] = [];
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key?.startsWith('save_')) {
+          const dataStr = localStorage.getItem(key);
+          if (dataStr) {
+            const data = JSON.parse(dataStr);
+            const matchesWorld = !data.worldId || data.worldId === wId;
+            
+            if (data.character && data.user && matchesWorld) {
+              localSlots.push({
+                id: key.replace('save_', ''),
+                charName: data.character.name,
+                charAvatar: data.character.avatar,
+                userName: data.user.name,
+                lastPlayed: data.character.updatedAt || Date.now(),
+                level: data.character.relationshipScore ? Math.floor(data.character.relationshipScore / 100) + 1 : 1
+              });
+            }
+          }
+        }
+      }
+    } catch (e) { console.warn("Error reading local slots:", e); }
+    return localSlots;
+  };
+
+  const handleEnterOnline = async () => {
+    if (!worldId) return;
+    setIsLoading(true);
+    setAppMode('online');
+    try {
+      const fbSettings = await firebaseRef.current.loadAppSettings();
+      if (fbSettings) {
+        const mergedSettings = { ...settings, ...fbSettings };
+        setSettings(mergedSettings);
+        localStorage.setItem('auro_settings', JSON.stringify(mergedSettings));
+      }
+      
+      const onlineSlots = await firebaseRef.current.loadWorldCharacters(worldId, 3);
+      const localSlots = getLocalSlotsForWorld(worldId);
+      
+      const mergedSlots = [...onlineSlots];
+      localSlots.forEach(ls => {
+        if (!mergedSlots.find(os => os.id === ls.id)) {
+          mergedSlots.push({ ...ls, isLocalOnly: true });
+        }
+      });
+
+      setSlots(mergedSlots.sort((a, b) => b.lastPlayed - a.lastPlayed));
+      setView('saves');
+    } catch (e) {
+      const localSlots = getLocalSlotsForWorld(worldId);
+      if (localSlots.length > 0) {
+        setSlots(localSlots);
+        setView('saves');
+        setNotification({ title: 'Chế độ ngoại tuyến', message: "Máy chủ đang bận. Đang hiển thị dữ liệu lưu trên máy.", type: 'warning' });
+      } else {
+        setNotification({ title: 'Lỗi', message: "Không thể tải dữ liệu." });
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleLoadAllCharacters = async () => {
+    if (!worldId) return;
+    setIsLoadingMore(true);
+    try {
+      const onlineSlots = await firebaseRef.current.loadWorldCharacters(worldId);
+      const localSlots = getLocalSlotsForWorld(worldId);
+      
+      const mergedSlots = [...onlineSlots];
+      localSlots.forEach(ls => {
+        if (!mergedSlots.find(os => os.id === ls.id)) {
+          mergedSlots.push({ ...ls, isLocalOnly: true });
+        }
+      });
+
+      setSlots(mergedSlots.sort((a, b) => b.lastPlayed - a.lastPlayed));
+    } catch (e) {
+      setNotification({ title: 'Lỗi', message: "Lỗi tải danh sách." });
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
+  return {
+    worldId, setWorldId,
+    appMode, setAppMode,
+    serverName, setServerName,
+    totalServerCount, setTotalServerCount,
+    currentPinCode, setCurrentPinCode,
+    isOfflineMode, setIsOfflineMode,
+    currentFirebaseConfig, setCurrentFirebaseConfig,
+    slots, setSlots,
+    isLoading, setIsLoading,
+    isLoadingMore, setIsLoadingMore,
+    handleJoinWorld,
+    handlePreloadOnline,
+    handleEnterOnline,
+    handleLoadAllCharacters,
+    getLocalSlotsForWorld
+  };
+}

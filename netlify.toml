@@ -1,0 +1,9 @@
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Cho phép nhúng iframe trên mọi trang (bao gồm CrazyGames)
+    Content-Security-Policy = "frame-ancestors *"
+    # X-Frame-Options là header cũ, nhưng một số trình duyệt vẫn check.
+    X-Frame-Options = "ALLOWALL"
+    # CORS headers
+    Access-Control-Allow-Origin = "*"

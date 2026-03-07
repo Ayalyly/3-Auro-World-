@@ -1,0 +1,9 @@
+{
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ],
+  "name": "Remix: Tách Auro",
+  "description": "Tách auro World cho chắc. Qq gg nó điên rồi"
+}

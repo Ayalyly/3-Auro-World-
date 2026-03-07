@@ -1,0 +1,178 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#F4F6FF" />
+    <meta name="description" content="Your AI companion that feels alive." />
+    <link rel="apple-touch-icon" href="https://i.ibb.co/k6KC8zyN/media-1769361739.png">
+    <link rel="icon" type="image/png" href="https://i.ibb.co/k6KC8zyN/media-1769361739.png">
+    <title>Auro AI - Celestial Premium</title>
+    
+    <!-- Google AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6740752425200641" crossorigin="anonymous"></script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    
+    <!-- Libraries for features (Mammoth for docx, html2canvas for card, jsQR for scan) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    
+    <style>
+      /* Fonts */
+      @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&family=Quicksand:wght@500;700&display=swap');
+      
+      body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background-color: #F4F6FF;
+        overflow: hidden; /* Prevent body scroll, handle in app */
+        margin: 0;
+        padding: 0;
+      }
+
+      /* Global Styles */
+      .font-display { font-family: 'Quicksand', sans-serif; }
+      
+      /* Aurora Background Animation */
+      .aurora-bg {
+        background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+        background-size: 400% 400%;
+        animation: gradient 15s ease infinite;
+      }
+      @keyframes gradient {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+      
+      /* Floating Blobs */
+      .blob {
+        position: absolute;
+        filter: blur(40px);
+        z-index: 0;
+        opacity: 0.4;
+        animation: float 10s infinite ease-in-out;
+      }
+      .blob-1 { top: 0; left: 0; width: 300px; height: 300px; background: #6366f1; animation-delay: 0s; }
+      .blob-2 { bottom: 0; right: 0; width: 350px; height: 350px; background: #ec4899; animation-delay: -2s; }
+      .blob-3 { top: 50%; left: 50%; width: 250px; height: 250px; background: #8b5cf6; transform: translate(-50%, -50%); animation-delay: -4s; }
+      
+      @keyframes float {
+        0%, 100% { transform: translate(0, 0) scale(1); }
+        33% { transform: translate(30px, -50px) scale(1.1); }
+        66% { transform: translate(-20px, 20px) scale(0.9); }
+      }
+
+      /* Custom Scrollbar */
+      .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+      .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+      .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+      /* Animation Utilities */
+      .animate-in { animation: fadeIn 0.3s ease-out forwards; }
+      .fade-in { animation: fadeIn 0.5s ease-out forwards; }
+      .zoom-in { animation: zoomIn 0.3s ease-out forwards; }
+      .zoom-in-95 { animation: zoomIn95 0.3s ease-out forwards; }
+      .slide-in-from-bottom-2 { animation: slideUp 0.3s ease-out forwards; }
+      .slide-in-from-bottom-4 { animation: slideUpLarge 0.4s ease-out forwards; }
+      .slide-in-from-top-4 { animation: slideDown 0.4s ease-out forwards; }
+      .slide-in-from-right { animation: slideRight 0.3s ease-out forwards; }
+      .animate-float { animation: float 6s ease-in-out infinite; }
+      .animate-pop { animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+      
+      @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes zoomIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+      @keyframes zoomIn95 { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+      @keyframes slideUp { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+      @keyframes slideUpLarge { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+      @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+      @keyframes slideRight { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+      @keyframes pop { 0% { transform: scale(0.5); } 100% { transform: scale(1); } }
+      
+      /* Typing Animation */
+      .typing-dot {
+        width: 4px;
+        height: 4px;
+        background-color: #6366f1;
+        border-radius: 50%;
+        animation: typing 1.4s infinite ease-in-out both;
+        margin: 0 1px;
+      }
+      .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+      .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+      
+      @keyframes typing {
+        0%, 80%, 100% { transform: scale(0); }
+        40% { transform: scale(1); }
+      }
+
+      /* Specific Glass Utilities */
+      .glass-panel {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+      }
+      
+      .chat-bubble-user {
+        background: white;
+        color: #1e293b; /* Slate-800 for better readability than pure black */
+        border: 1px solid #6366f1;
+        border-radius: 20px 20px 4px 20px;
+      }
+      
+      .chat-bubble-ai {
+        background: rgba(255, 255, 255, 0.95);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 20px 20px 20px 4px;
+      }
+
+      /* Summon Circle Animation */
+      .summon-circle {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        margin: auto;
+        border-radius: 50%;
+        border: 2px solid transparent;
+      }
+      .summon-spin-slow { animation: spin 10s linear infinite; }
+      .summon-spin-fast { animation: spin 4s linear infinite reverse; }
+      .summon-pulse { animation: pulse 2s ease-in-out infinite; }
+      
+      @keyframes spin { 100% { transform: rotate(360deg); } }
+      @keyframes pulse { 0% { transform: scale(0.95); opacity: 0.5; } 50% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(0.95); opacity: 0.5; } }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.2.0",
+    "react/": "https://esm.sh/react@18.2.0/",
+    "react-dom": "https://esm.sh/react-dom@18.2.0",
+    "react-dom/": "https://esm.sh/react-dom@18.2.0/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.38.0",
+    "firebase/app": "https://esm.sh/firebase@10.12.0/app",
+    "firebase/auth": "https://esm.sh/firebase@10.12.0/auth",
+    "firebase/firestore": "https://esm.sh/firebase@10.12.0/firestore",
+    "three": "https://esm.sh/three@0.160.0",
+    "@react-three/fiber": "https://esm.sh/@react-three/fiber@8.15.14?external=react,react-dom,three",
+    "@react-three/drei": "https://esm.sh/@react-three/drei@9.99.0?external=react,react-dom,three,@react-three/fiber",
+    "firebase/": "https://esm.sh/firebase@^12.8.0/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

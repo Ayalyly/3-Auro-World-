@@ -190,16 +190,28 @@ const CharacterCard: React.FC<CharacterCardProps> = ({ character, onSave, onBack
                               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                                   <i className="fa-solid fa-users"></i> Mối quan hệ
                               </label>
-                              <span className="text-[8px] bg-slate-100 px-2 py-0.5 rounded text-slate-400 font-bold">{formData.relations?.length || 0}</span>
+                              <span className="text-[8px] bg-slate-100 px-2 py-0.5 rounded text-slate-400 font-bold">
+                                  {(formData.relations as any) === 'LOCKED' ? '?' : (formData.relations?.length || 0)}
+                              </span>
                           </div>
                           
-                          {(!formData.relations || formData.relations.length === 0) ? (
+                          {(formData.relations as any) === 'LOCKED' ? (
+                              <div className="relative h-24 rounded-2xl overflow-hidden bg-slate-50 border border-slate-100 flex items-center justify-center">
+                                  <div className="absolute inset-0 bg-slate-50/40 backdrop-blur-2xl z-10"></div>
+                                  <div className="relative z-20 bg-white/90 px-4 py-2 rounded-full border border-slate-200 shadow-lg flex items-center gap-2">
+                                      <div className="w-6 h-6 bg-indigo-100 rounded-full flex items-center justify-center">
+                                          <i className="fa-solid fa-lock text-indigo-600 text-[10px]"></i>
+                                      </div>
+                                      <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Bảo mật</span>
+                                  </div>
+                              </div>
+                          ) : (!formData.relations || formData.relations.length === 0) ? (
                               <div className="p-6 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
                                   <p className="text-[10px] text-slate-400 italic">Chưa có mối quan hệ nào.</p>
                               </div>
                           ) : (
                               <div className="flex gap-3 overflow-x-auto custom-scrollbar pb-2">
-                                  {formData.relations.map(rel => (
+                                  {(formData.relations as any[]).map(rel => (
                                       <div key={rel.id} className="min-w-[140px] bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center gap-2 shrink-0">
                                           <img src={rel.avatar} className="w-10 h-10 rounded-full object-cover border border-slate-100" />
                                           <div className="text-center w-full">
@@ -219,22 +231,48 @@ const CharacterCard: React.FC<CharacterCardProps> = ({ character, onSave, onBack
                       <div className="space-y-4 pt-2">
                           <div className="relative group">
                               <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 block">Identity Core (Prompt)</label>
-                              <textarea 
-                                  value={formData.description}
-                                  onChange={(e) => handleChange('description', e.target.value)}
-                                  className="w-full h-32 p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs text-slate-600 leading-relaxed focus:bg-white focus:ring-2 focus:ring-indigo-100 outline-none resize-none custom-scrollbar transition-all font-medium"
-                                  placeholder="Character description..."
-                              />
+                              <div className="relative rounded-2xl overflow-hidden">
+                                  <textarea 
+                                      value={formData.description === 'LOCKED' ? 'NỘI DUNG ĐÃ ĐƯỢC BẢO VỆ BỞI CHỦ SỞ HỮU' : formData.description}
+                                      onChange={(e) => handleChange('description', e.target.value)}
+                                      className={`w-full h-32 p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs text-slate-600 leading-relaxed focus:bg-white focus:ring-2 focus:ring-indigo-100 outline-none resize-none custom-scrollbar transition-all font-medium ${formData.description === 'LOCKED' ? 'select-none pointer-events-none' : ''}`}
+                                      placeholder="Character description..."
+                                      disabled={formData.description === 'LOCKED'}
+                                  />
+                                  {formData.description === 'LOCKED' && (
+                                      <div className="absolute inset-0 bg-slate-50/40 backdrop-blur-2xl flex items-center justify-center z-10">
+                                          <div className="bg-white/90 px-4 py-2 rounded-full border border-slate-200 shadow-lg flex items-center gap-2 scale-110">
+                                              <div className="w-6 h-6 bg-indigo-100 rounded-full flex items-center justify-center">
+                                                  <i className="fa-solid fa-lock text-indigo-600 text-[10px]"></i>
+                                              </div>
+                                              <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Bảo mật</span>
+                                          </div>
+                                      </div>
+                                  )}
+                              </div>
                           </div>
                           
                           <div className="relative group">
                               <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 block">Opening Line</label>
-                              <textarea 
-                                  value={formData.openingMessage}
-                                  onChange={(e) => handleChange('openingMessage', e.target.value)}
-                                  className="w-full h-20 p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs text-slate-600 leading-relaxed focus:bg-white focus:ring-2 focus:ring-indigo-100 outline-none resize-none custom-scrollbar transition-all italic"
-                                  placeholder="Hello..."
-                              />
+                              <div className="relative rounded-2xl overflow-hidden">
+                                  <textarea 
+                                      value={formData.openingMessage === 'LOCKED' ? 'NỘI DUNG ĐÃ ĐƯỢC BẢO VỆ BỞI CHỦ SỞ HỮU' : formData.openingMessage}
+                                      onChange={(e) => handleChange('openingMessage', e.target.value)}
+                                      className={`w-full h-20 p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs text-slate-600 leading-relaxed focus:bg-white focus:ring-2 focus:ring-indigo-100 outline-none resize-none custom-scrollbar transition-all italic ${formData.openingMessage === 'LOCKED' ? 'select-none pointer-events-none' : ''}`}
+                                      placeholder="Hello..."
+                                      disabled={formData.openingMessage === 'LOCKED'}
+                                  />
+                                  {formData.openingMessage === 'LOCKED' && (
+                                      <div className="absolute inset-0 bg-slate-50/40 backdrop-blur-2xl flex items-center justify-center z-10">
+                                          <div className="bg-white/90 px-4 py-2 rounded-full border border-slate-200 shadow-lg flex items-center gap-2 scale-110">
+                                              <div className="w-6 h-6 bg-indigo-100 rounded-full flex items-center justify-center">
+                                                  <i className="fa-solid fa-lock text-indigo-600 text-[10px]"></i>
+                                              </div>
+                                              <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Bảo mật</span>
+                                          </div>
+                                      </div>
+                                  )}
+                              </div>
                           </div>
                       </div>
                   </div>

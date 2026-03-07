@@ -13,10 +13,20 @@ export class GoogleSheetService {
     return this.fetchFromSheet<InventoryItem>(this.shopUrl, (row) => {
       // Find the interactive column dynamically to handle spaces, \r, etc.
       let interactiveUrl = '';
+      let furnitureType: 'floor' | 'wall' | 'decor' | undefined;
+      
       for (const key in row) {
-        if (key.toLowerCase().includes('tương tác') || key.toLowerCase().includes('tuong tac')) {
+        const val = row[key]?.toLowerCase() || '';
+        const lowerKey = key.toLowerCase();
+        
+        if (lowerKey.includes('tương tác') || lowerKey.includes('tuong tac')) {
           interactiveUrl = row[key] || '';
-          break;
+        }
+        
+        if (lowerKey.includes('loại nội thất') || lowerKey.includes('furnituretype')) {
+          if (val.includes('nền') || val.includes('floor')) furnitureType = 'floor';
+          else if (val.includes('tường') || val.includes('wall')) furnitureType = 'wall';
+          else if (val.includes('decor')) furnitureType = 'decor';
         }
       }
 
@@ -34,6 +44,7 @@ export class GoogleSheetService {
         pixelImage: row['Link ảnh'] || row['Link ảnh '] || '',
         interactiveImage: interactiveUrl,
         isInteractive: !!interactiveUrl,
+        furnitureType: furnitureType,
       };
     });
   }

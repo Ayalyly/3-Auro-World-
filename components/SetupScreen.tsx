@@ -121,7 +121,12 @@ export default function SetupScreen({
 
   const handleSaveDraft = () => {
     const draftData = {
-        charName, charOpening, charPrompt, charDesc, charAppearance, charAvatar,
+        charName, 
+        charOpening: charOpening === 'LOCKED' ? 'LOCKED' : charOpening, 
+        charPrompt, 
+        charDesc: charDesc === 'LOCKED' ? 'LOCKED' : charDesc, 
+        charAppearance, 
+        charAvatar,
         initialAffinity, worldContext, userName, userDesc, userAvatar, userAppearance, worldModel,
         timestamp: Date.now()
     };
@@ -345,6 +350,10 @@ export default function SetupScreen({
 
         // Removed artificial delay
         
+        // Ensure locked fields remain locked
+        if (charDesc === 'LOCKED') finalChar.description = importedChar.description || '';
+        if (charOpening === 'LOCKED') finalChar.openingMessage = importedChar.openingMessage || '';
+
         cleanupDraft();
         onComplete(
           finalChar, 
@@ -615,26 +624,30 @@ export default function SetupScreen({
                                 <button onClick={() => handleAnalyzeAvatar('char')} disabled={analyzingTarget === 'char' || charAppearance === 'LOCKED'} className="text-[9px] font-bold text-indigo-500 hover:bg-indigo-50 px-2 py-1 rounded-lg transition-colors flex items-center gap-1 disabled:opacity-50">{analyzingTarget === 'char' ? <i className="fa-solid fa-circle-notch fa-spin"></i> : <i className="fa-solid fa-wand-magic-sparkles"></i>}{analyzingTarget === 'char' ? 'ĐANG NHÌN...' : 'PHÂN TÍCH ẢNH'}</button>
                             </div>
                         </div>
-                        <div className="relative">
+                        <div className="relative group">
                             <textarea 
-                                className={`w-full p-5 bg-slate-50 border-2 border-transparent rounded-[1.5rem] focus:bg-white focus:border-indigo-100 outline-none text-xs text-slate-700 font-medium resize-none h-24 leading-relaxed placeholder:text-slate-300 transition-all shadow-sm ${charAppearance === 'LOCKED' ? 'blur-md select-none pointer-events-none' : ''}`} 
+                                className={`w-full p-5 bg-slate-50 border-2 border-transparent rounded-[1.5rem] focus:bg-white focus:border-indigo-100 outline-none text-xs text-slate-700 font-medium resize-none h-24 leading-relaxed placeholder:text-slate-300 transition-all shadow-sm ${charAppearance === 'LOCKED' ? 'select-none pointer-events-none' : ''}`} 
                                 value={charAppearance === 'LOCKED' ? 'NỘI DUNG ĐÃ ĐƯỢC BẢO VỆ' : charAppearance} 
                                 onChange={e => setCharAppearance(e.target.value)} 
                                 placeholder="AI sẽ tự điền khi phân tích ảnh, hoặc bạn nhập mô tả..." 
                             />
                             {charAppearance === 'LOCKED' && (
-                                <div className="absolute inset-0 flex items-center justify-center z-10">
-                                    <div className="bg-white/80 backdrop-blur-sm px-4 py-3 rounded-2xl border border-slate-200 shadow-lg flex flex-col items-center gap-2">
-                                        <div className="flex items-center gap-2">
-                                            <i className="fa-solid fa-lock text-slate-400"></i>
-                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Bảo mật</span>
+                                <div className="absolute inset-0 rounded-[1.5rem] overflow-hidden">
+                                    <div className="absolute inset-0 bg-slate-50/40 backdrop-blur-2xl flex items-center justify-center z-10">
+                                        <div className="bg-white/90 px-5 py-4 rounded-3xl border border-slate-200 shadow-xl flex flex-col items-center gap-3 scale-110">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
+                                                    <i className="fa-solid fa-lock text-indigo-600"></i>
+                                                </div>
+                                                <span className="text-xs font-black text-slate-700 uppercase tracking-widest">Bảo mật</span>
+                                            </div>
+                                            <button 
+                                                onClick={() => setCharAppearance('')}
+                                                className="px-4 py-2 bg-indigo-600 text-white text-[10px] font-black rounded-xl hover:bg-indigo-700 transition-all uppercase tracking-wider shadow-lg shadow-indigo-200 active:scale-95"
+                                            >
+                                                Ghi đè nội dung mới
+                                            </button>
                                         </div>
-                                        <button 
-                                            onClick={() => setCharAppearance('')}
-                                            className="mt-1 px-3 py-1 bg-indigo-600 text-white text-[9px] font-bold rounded-lg hover:bg-indigo-700 transition-colors uppercase tracking-wider"
-                                        >
-                                            Ghi đè nội dung mới
-                                        </button>
                                     </div>
                                 </div>
                             )}
@@ -656,26 +669,30 @@ export default function SetupScreen({
                                 <span className="bg-rose-50 text-rose-500 px-1.5 py-0.5 rounded text-[8px] font-bold border border-rose-100">QUAN TRỌNG NHẤT</span>
                             </div>
                         </div>
-                        <div className="relative">
+                        <div className="relative group">
                             <textarea 
-                                className={`w-full p-5 bg-slate-50 border-2 border-transparent rounded-[1.5rem] focus:bg-white focus:border-indigo-100 outline-none text-xs text-slate-700 font-medium resize-none h-40 leading-relaxed custom-scrollbar transition-all shadow-sm ${charDesc === 'LOCKED' ? 'blur-md select-none pointer-events-none' : ''}`} 
+                                className={`w-full p-5 bg-slate-50 border-2 border-transparent rounded-[1.5rem] focus:bg-white focus:border-indigo-100 outline-none text-xs text-slate-700 font-medium resize-none h-40 leading-relaxed custom-scrollbar transition-all shadow-sm ${charDesc === 'LOCKED' ? 'select-none pointer-events-none' : ''}`} 
                                 value={charDesc === 'LOCKED' ? 'NỘI DUNG ĐÃ ĐƯỢC BẢO VỆ BỞI CHỦ SỞ HỮU' : charDesc} 
                                 onChange={e => setCharDesc(e.target.value)} 
                                 placeholder="Mô tả càng chi tiết, AI càng thông minh..." 
                             />
                             {charDesc === 'LOCKED' && (
-                                <div className="absolute inset-0 flex items-center justify-center z-10">
-                                    <div className="bg-white/80 backdrop-blur-sm px-4 py-3 rounded-2xl border border-slate-200 shadow-lg flex flex-col items-center gap-2">
-                                        <div className="flex items-center gap-2">
-                                            <i className="fa-solid fa-lock text-slate-400"></i>
-                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Nội dung bảo mật</span>
+                                <div className="absolute inset-0 rounded-[1.5rem] overflow-hidden">
+                                    <div className="absolute inset-0 bg-slate-50/40 backdrop-blur-2xl flex items-center justify-center z-10">
+                                        <div className="bg-white/90 px-5 py-4 rounded-3xl border border-slate-200 shadow-xl flex flex-col items-center gap-3 scale-110">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
+                                                    <i className="fa-solid fa-lock text-indigo-600"></i>
+                                                </div>
+                                                <span className="text-xs font-black text-slate-700 uppercase tracking-widest">Nội dung bảo mật</span>
+                                            </div>
+                                            <button 
+                                                onClick={() => setCharDesc('')}
+                                                className="px-4 py-2 bg-indigo-600 text-white text-[10px] font-black rounded-xl hover:bg-indigo-700 transition-all uppercase tracking-wider shadow-lg shadow-indigo-200 active:scale-95"
+                                            >
+                                                Ghi đè nội dung mới
+                                            </button>
                                         </div>
-                                        <button 
-                                            onClick={() => setCharDesc('')}
-                                            className="mt-1 px-3 py-1 bg-indigo-600 text-white text-[9px] font-bold rounded-lg hover:bg-indigo-700 transition-colors uppercase tracking-wider"
-                                        >
-                                            Ghi đè nội dung mới
-                                        </button>
                                     </div>
                                 </div>
                             )}
@@ -730,26 +747,30 @@ export default function SetupScreen({
                                 </span>
                             )}
                         </div>
-                        <div className="relative">
+                        <div className="relative group">
                             <textarea 
-                                className={`w-full p-5 bg-slate-50 border-2 border-transparent rounded-[1.5rem] focus:bg-white focus:border-indigo-100 outline-none text-xs text-slate-700 font-medium resize-none h-24 leading-relaxed custom-scrollbar transition-all shadow-sm italic ${charOpening === 'LOCKED' ? 'blur-md select-none pointer-events-none' : ''}`} 
+                                className={`w-full p-5 bg-slate-50 border-2 border-transparent rounded-[1.5rem] focus:bg-white focus:border-indigo-100 outline-none text-xs text-slate-700 font-medium resize-none h-24 leading-relaxed custom-scrollbar transition-all shadow-sm italic ${charOpening === 'LOCKED' ? 'select-none pointer-events-none' : ''}`} 
                                 value={charOpening === 'LOCKED' ? 'NỘI DUNG ĐÃ ĐƯỢC BẢO VỆ' : charOpening} 
                                 onChange={e => setCharOpening(e.target.value)} 
                                 placeholder="Câu đầu tiên nhân vật nói với bạn..." 
                             />
                             {charOpening === 'LOCKED' && (
-                                <div className="absolute inset-0 flex items-center justify-center z-10">
-                                    <div className="bg-white/80 backdrop-blur-sm px-4 py-3 rounded-2xl border border-slate-200 shadow-lg flex flex-col items-center gap-2">
-                                        <div className="flex items-center gap-2">
-                                            <i className="fa-solid fa-lock text-slate-400"></i>
-                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Bảo mật</span>
+                                <div className="absolute inset-0 rounded-[1.5rem] overflow-hidden">
+                                    <div className="absolute inset-0 bg-slate-50/40 backdrop-blur-2xl flex items-center justify-center z-10">
+                                        <div className="bg-white/90 px-5 py-4 rounded-3xl border border-slate-200 shadow-xl flex flex-col items-center gap-3 scale-110">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
+                                                    <i className="fa-solid fa-lock text-indigo-600"></i>
+                                                </div>
+                                                <span className="text-xs font-black text-slate-700 uppercase tracking-widest">Bảo mật</span>
+                                            </div>
+                                            <button 
+                                                onClick={() => setCharOpening('')}
+                                                className="px-4 py-2 bg-indigo-600 text-white text-[10px] font-black rounded-xl hover:bg-indigo-700 transition-all uppercase tracking-wider shadow-lg shadow-indigo-200 active:scale-95"
+                                            >
+                                                Ghi đè nội dung mới
+                                            </button>
                                         </div>
-                                        <button 
-                                            onClick={() => setCharOpening('')}
-                                            className="mt-1 px-3 py-1 bg-indigo-600 text-white text-[9px] font-bold rounded-lg hover:bg-indigo-700 transition-colors uppercase tracking-wider"
-                                        >
-                                            Ghi đè nội dung mới
-                                        </button>
                                     </div>
                                 </div>
                             )}

@@ -2,6 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { Character } from '../types';
 import { GeminiService } from '../services/geminiService';
+import { SecurityOverlay } from './SecurityOverlay';
 
 interface CharacterCardProps {
   character: Character;
@@ -196,14 +197,8 @@ const CharacterCard: React.FC<CharacterCardProps> = ({ character, onSave, onBack
                           </div>
                           
                           {(formData.relations as any) === 'LOCKED' ? (
-                              <div className="relative h-24 rounded-2xl overflow-hidden bg-slate-50 border border-slate-100 flex items-center justify-center">
-                                  <div className="absolute inset-0 bg-slate-50/40 backdrop-blur-2xl z-10"></div>
-                                  <div className="relative z-20 bg-white/90 px-4 py-2 rounded-full border border-slate-200 shadow-lg flex items-center gap-2">
-                                      <div className="w-6 h-6 bg-indigo-100 rounded-full flex items-center justify-center">
-                                          <i className="fa-solid fa-lock text-indigo-600 text-[10px]"></i>
-                                      </div>
-                                      <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Bảo mật</span>
-                                  </div>
+                              <div className="relative h-24">
+                                  <SecurityOverlay isLocked={true} compact={true} label="Bảo mật" borderRadius="rounded-2xl" />
                               </div>
                           ) : (!formData.relations || formData.relations.length === 0) ? (
                               <div className="p-6 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
@@ -239,16 +234,7 @@ const CharacterCard: React.FC<CharacterCardProps> = ({ character, onSave, onBack
                                       placeholder="Character description..."
                                       disabled={formData.description === 'LOCKED'}
                                   />
-                                  {formData.description === 'LOCKED' && (
-                                      <div className="absolute inset-0 bg-slate-50/40 backdrop-blur-2xl flex items-center justify-center z-10">
-                                          <div className="bg-white/90 px-4 py-2 rounded-full border border-slate-200 shadow-lg flex items-center gap-2 scale-110">
-                                              <div className="w-6 h-6 bg-indigo-100 rounded-full flex items-center justify-center">
-                                                  <i className="fa-solid fa-lock text-indigo-600 text-[10px]"></i>
-                                              </div>
-                                              <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Bảo mật</span>
-                                          </div>
-                                      </div>
-                                  )}
+                                  <SecurityOverlay isLocked={formData.description === 'LOCKED'} compact={true} label="Bảo mật" borderRadius="rounded-2xl" />
                               </div>
                           </div>
                           
@@ -262,16 +248,7 @@ const CharacterCard: React.FC<CharacterCardProps> = ({ character, onSave, onBack
                                       placeholder="Hello..."
                                       disabled={formData.openingMessage === 'LOCKED'}
                                   />
-                                  {formData.openingMessage === 'LOCKED' && (
-                                      <div className="absolute inset-0 bg-slate-50/40 backdrop-blur-2xl flex items-center justify-center z-10">
-                                          <div className="bg-white/90 px-4 py-2 rounded-full border border-slate-200 shadow-lg flex items-center gap-2 scale-110">
-                                              <div className="w-6 h-6 bg-indigo-100 rounded-full flex items-center justify-center">
-                                                  <i className="fa-solid fa-lock text-indigo-600 text-[10px]"></i>
-                                              </div>
-                                              <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Bảo mật</span>
-                                          </div>
-                                      </div>
-                                  )}
+                                  <SecurityOverlay isLocked={formData.openingMessage === 'LOCKED'} compact={true} label="Bảo mật" borderRadius="rounded-2xl" />
                               </div>
                           </div>
                       </div>

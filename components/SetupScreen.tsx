@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Character, InventoryItem, Relation, ShopNPC, UserProfile, Property, AuroCardData, Mood, AppSettings } from '../types';
 import { GeminiService } from '../services/geminiService';
+import { SecurityOverlay } from './SecurityOverlay';
 import jsQR from 'jsqr';
 import ModelSelectorModal from './ModelSelectorModal';
 
@@ -631,26 +632,11 @@ export default function SetupScreen({
                                 onChange={e => setCharAppearance(e.target.value)} 
                                 placeholder="AI sẽ tự điền khi phân tích ảnh, hoặc bạn nhập mô tả..." 
                             />
-                            {charAppearance === 'LOCKED' && (
-                                <div className="absolute inset-0 rounded-[1.5rem] overflow-hidden">
-                                    <div className="absolute inset-0 bg-slate-50/40 backdrop-blur-2xl flex items-center justify-center z-10">
-                                        <div className="bg-white/90 px-5 py-4 rounded-3xl border border-slate-200 shadow-xl flex flex-col items-center gap-3 scale-110">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
-                                                    <i className="fa-solid fa-lock text-indigo-600"></i>
-                                                </div>
-                                                <span className="text-xs font-black text-slate-700 uppercase tracking-widest">Bảo mật</span>
-                                            </div>
-                                            <button 
-                                                onClick={() => setCharAppearance('')}
-                                                className="px-4 py-2 bg-indigo-600 text-white text-[10px] font-black rounded-xl hover:bg-indigo-700 transition-all uppercase tracking-wider shadow-lg shadow-indigo-200 active:scale-95"
-                                            >
-                                                Ghi đè nội dung mới
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
+                            <SecurityOverlay 
+                                isLocked={charAppearance === 'LOCKED'} 
+                                onOverwrite={() => setCharAppearance('')}
+                                label="Bảo mật"
+                            />
                         </div>
                     </div>
                     <div className="group">
@@ -676,26 +662,10 @@ export default function SetupScreen({
                                 onChange={e => setCharDesc(e.target.value)} 
                                 placeholder="Mô tả càng chi tiết, AI càng thông minh..." 
                             />
-                            {charDesc === 'LOCKED' && (
-                                <div className="absolute inset-0 rounded-[1.5rem] overflow-hidden">
-                                    <div className="absolute inset-0 bg-slate-50/40 backdrop-blur-2xl flex items-center justify-center z-10">
-                                        <div className="bg-white/90 px-5 py-4 rounded-3xl border border-slate-200 shadow-xl flex flex-col items-center gap-3 scale-110">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
-                                                    <i className="fa-solid fa-lock text-indigo-600"></i>
-                                                </div>
-                                                <span className="text-xs font-black text-slate-700 uppercase tracking-widest">Nội dung bảo mật</span>
-                                            </div>
-                                            <button 
-                                                onClick={() => setCharDesc('')}
-                                                className="px-4 py-2 bg-indigo-600 text-white text-[10px] font-black rounded-xl hover:bg-indigo-700 transition-all uppercase tracking-wider shadow-lg shadow-indigo-200 active:scale-95"
-                                            >
-                                                Ghi đè nội dung mới
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
+                            <SecurityOverlay 
+                                isLocked={charDesc === 'LOCKED'} 
+                                onOverwrite={() => setCharDesc('')}
+                            />
                         </div>
                     </div>
 
@@ -754,26 +724,11 @@ export default function SetupScreen({
                                 onChange={e => setCharOpening(e.target.value)} 
                                 placeholder="Câu đầu tiên nhân vật nói với bạn..." 
                             />
-                            {charOpening === 'LOCKED' && (
-                                <div className="absolute inset-0 rounded-[1.5rem] overflow-hidden">
-                                    <div className="absolute inset-0 bg-slate-50/40 backdrop-blur-2xl flex items-center justify-center z-10">
-                                        <div className="bg-white/90 px-5 py-4 rounded-3xl border border-slate-200 shadow-xl flex flex-col items-center gap-3 scale-110">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
-                                                    <i className="fa-solid fa-lock text-indigo-600"></i>
-                                                </div>
-                                                <span className="text-xs font-black text-slate-700 uppercase tracking-widest">Bảo mật</span>
-                                            </div>
-                                            <button 
-                                                onClick={() => setCharOpening('')}
-                                                className="px-4 py-2 bg-indigo-600 text-white text-[10px] font-black rounded-xl hover:bg-indigo-700 transition-all uppercase tracking-wider shadow-lg shadow-indigo-200 active:scale-95"
-                                            >
-                                                Ghi đè nội dung mới
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
+                            <SecurityOverlay 
+                                isLocked={charOpening === 'LOCKED'} 
+                                onOverwrite={() => setCharOpening('')}
+                                label="Bảo mật"
+                            />
                         </div>
                     </div>
                 </>

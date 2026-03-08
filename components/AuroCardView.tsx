@@ -66,7 +66,7 @@ const TEXT_COLORS = [
 ];
 
 const AuroCardView: React.FC<AuroCardViewProps> = ({ character, onClose, onSave, firebaseService }) => {
-  const [token, setToken] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(character.cardConfig?.token || null);
   const [isOnline, setIsOnline] = useState(false);
   
   // Design State
@@ -78,7 +78,8 @@ const AuroCardView: React.FC<AuroCardViewProps> = ({ character, onClose, onSave,
     privacy: { backstory: false, personality: false, greeting: false, appearance: false, npcRelations: false },
     rules: '',
     prefix: '',
-    includedFields: ['backstory', 'personality', 'greeting', 'appearance', 'npcRelations'] as (keyof CardPrivacySettings)[]
+    includedFields: ['backstory', 'personality', 'greeting', 'appearance', 'npcRelations'] as (keyof CardPrivacySettings)[],
+    customText: ''
   });
 
   const [generatedCode, setGeneratedCode] = useState('');
@@ -172,7 +173,7 @@ const AuroCardView: React.FC<AuroCardViewProps> = ({ character, onClose, onSave,
   useEffect(() => {
     const initCard = async () => {
         try {
-            const result = await firebaseService.publishCharacterCard(character, config);
+            const result = await firebaseService.publishCharacterCard(character, config, token || undefined);
             setToken(result.token);
             setIsOnline(result.isOnline);
         } catch (e) {
@@ -254,10 +255,10 @@ const AuroCardView: React.FC<AuroCardViewProps> = ({ character, onClose, onSave,
                           )}
                       </div>
                       <div className="relative">
-                          <p className={`text-[10px] text-white/90 line-clamp-2 italic ${config.privacy.backstory ? 'blur-[8px] select-none opacity-40' : ''}`}>
-                              "{character.description.substring(0,100)}..."
+                          <p className={`text-[10px] text-white/90 line-clamp-2 italic ${(!config.customText && config.privacy.backstory) ? 'blur-[8px] select-none opacity-40' : ''}`}>
+                              "{config.customText || character.description.substring(0,100)}..."
                           </p>
-                          {config.privacy.backstory && (
+                          {(!config.customText && config.privacy.backstory) && (
                               <div className="absolute inset-0 flex items-center justify-center bg-slate-900 rounded-lg border border-white/10 shadow-2xl">
                                   <div className="bg-slate-800 text-white px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest border border-rose-500/50 flex items-center gap-2 shadow-xl transform scale-105">
                                       <i className="fa-solid fa-lock text-rose-500 animate-pulse"></i>
@@ -302,6 +303,9 @@ const AuroCardView: React.FC<AuroCardViewProps> = ({ character, onClose, onSave,
               {/* Handwritten Text Area */}
               <div className="text-center px-2">
                   <h2 className={`text-3xl font-black text-slate-800 uppercase tracking-tighter ${currentColor.text} whitespace-pre-wrap`}>{character.name}</h2>
+                  {config.customText && (
+                      <p className="text-[10px] font-medium text-slate-500 mt-1 italic line-clamp-2">{config.customText}</p>
+                  )}
                   <div className="flex items-center justify-center gap-2 mt-2">
                       <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{token || 'TOKEN'}</p>
                       {character.youtubeLink && <i className="fa-brands fa-youtube text-rose-500 text-[10px]" title="Có nhạc nền"></i>}
@@ -395,10 +399,10 @@ const AuroCardView: React.FC<AuroCardViewProps> = ({ character, onClose, onSave,
                               </span>
                           )}
                       </div>
-                      <p className={`text-[9px] text-white/60 line-clamp-2 leading-relaxed ${config.privacy.backstory ? 'blur-[8px] select-none opacity-40' : ''}`}>
-                          {character.description}
+                      <p className={`text-[9px] text-white/60 line-clamp-2 leading-relaxed ${(!config.customText && config.privacy.backstory) ? 'blur-[8px] select-none opacity-40' : ''}`}>
+                          {config.customText || character.description}
                       </p>
-                      {config.privacy.backstory && (
+                      {(!config.customText && config.privacy.backstory) && (
                           <div className="absolute inset-0 flex items-center justify-center pt-2 bg-slate-900 rounded-lg border border-white/10 shadow-2xl">
                               <div className="bg-slate-800 text-white px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest border border-amber-500/50 flex items-center gap-2 shadow-xl transform scale-105">
                                   <i className="fa-solid fa-lock text-amber-500"></i>
@@ -449,10 +453,10 @@ const AuroCardView: React.FC<AuroCardViewProps> = ({ character, onClose, onSave,
 
               {/* Description */}
               <div className="relative z-10 mb-auto">
-                  <p className={`text-[10px] font-mono text-black/70 leading-relaxed text-justify line-clamp-6 ${config.privacy.backstory ? 'blur-[4px] select-none opacity-40' : ''}`}>
-                      {character.openingMessage || character.description}
+                  <p className={`text-[10px] font-mono text-black/70 leading-relaxed text-justify line-clamp-6 ${(!config.customText && config.privacy.backstory) ? 'blur-[4px] select-none opacity-40' : ''}`}>
+                      {config.customText || character.openingMessage || character.description}
                   </p>
-                  {config.privacy.backstory && (
+                  {(!config.customText && config.privacy.backstory) && (
                       <div className="absolute inset-0 flex items-center justify-center">
                           <i className="fa-solid fa-lock text-black/20 text-2xl"></i>
                       </div>
@@ -598,10 +602,21 @@ const AuroCardView: React.FC<AuroCardViewProps> = ({ character, onClose, onSave,
                    </div>
                </div>
 
-               {/* 3. RULES & PREFIX */}
+               {/* 3. CUSTOM TEXT */}
+               <div className="bg-white/5 p-5 rounded-3xl border border-white/5 mt-4">
+                   <label className="text-[10px] font-black text-white/50 uppercase tracking-[0.2em] mb-4 block ml-1"><i className="fa-solid fa-pen-to-square mr-2 text-amber-400"></i> 3. Chữ trên thẻ (Tùy chỉnh)</label>
+                   <textarea 
+                       placeholder="Nhập nội dung bạn muốn hiển thị trên thẻ... (Để trống để dùng mặc định)" 
+                       value={config.customText || ''} 
+                       onChange={e => setConfig({...config, customText: e.target.value})} 
+                       className="w-full bg-white/5 border border-white/10 p-3.5 rounded-2xl text-[11px] font-bold text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder:text-white/20 min-h-[80px] resize-none" 
+                   />
+               </div>
+
+               {/* 4. RULES & PREFIX */}
                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                    <div className="space-y-2">
-                       <label className="block text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-1">Luật đi kèm</label>
+                       <label className="block text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-1">4. Luật đi kèm</label>
                        <input 
                            type="text" 
                            placeholder="Ví dụ: Không được yêu..." 
@@ -622,9 +637,9 @@ const AuroCardView: React.FC<AuroCardViewProps> = ({ character, onClose, onSave,
                    </div>
                </div>
 
-               {/* 4. SHARE CODE */}
+               {/* 5. SHARE CODE */}
                <div className="space-y-3 pt-2">
-                   <label className="block text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-1">Mã triệu hồi (Summon Token)</label>
+                   <label className="block text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-1">5. Mã triệu hồi (Summon Token)</label>
                    <div className="relative group">
                        <div className="w-full bg-black/80 border border-white/10 p-6 rounded-[2.5rem] flex flex-col items-center justify-center gap-2 shadow-inner">
                            <span className="text-[10px] text-white/40 uppercase tracking-[0.3em] font-black">Mã của bạn</span>
@@ -639,7 +654,7 @@ const AuroCardView: React.FC<AuroCardViewProps> = ({ character, onClose, onSave,
                                setCopied(true);
                                setTimeout(() => setCopied(false), 2000);
                            }}
-                           className={`absolute top-4 right-4 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shadow-lg ${copied ? 'bg-emerald-500 text-white' : 'bg-white/10 text-white hover:bg-white/20 backdrop-blur-md border border-white/10'}`}
+                           className={`absolute top-1/2 -translate-y-1/2 right-6 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shadow-lg ${copied ? 'bg-emerald-500 text-white' : 'bg-white/10 text-white hover:bg-white/20 backdrop-blur-md border border-white/10'}`}
                        >
                            {copied ? <><i className="fa-solid fa-check mr-2"></i> Copied</> : <><i className="fa-solid fa-copy mr-2"></i> Copy</>}
                        </button>
@@ -647,10 +662,10 @@ const AuroCardView: React.FC<AuroCardViewProps> = ({ character, onClose, onSave,
                    <p className="text-[9px] text-white/30 italic text-center mt-2">Dùng mã ngắn này để triệu hồi nhân vật nhanh chóng.</p>
                </div>
 
-               {/* 5. COLORS (POLAROID ONLY) */}
+               {/* 6. COLORS (POLAROID ONLY) */}
                {selectedStyleId === 'tpl_polaroid' && (
                    <div className="pt-2">
-                       <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-3 block ml-1"><i className="fa-solid fa-palette mr-2 text-amber-400"></i> Màu Chữ (Polaroid)</label>
+                       <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-3 block ml-1"><i className="fa-solid fa-palette mr-2 text-amber-400"></i> 6. Màu Chữ (Polaroid)</label>
                        <div className="flex gap-4 overflow-x-auto custom-scrollbar pb-1 px-1">
                            {TEXT_COLORS.map(c => (
                                <button 

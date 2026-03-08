@@ -309,6 +309,8 @@ export interface Character {
     rules: string;
     prefix: string;
     includedFields: (keyof CardPrivacySettings)[];
+    customText?: string;
+    token?: string;
   };
 }
 

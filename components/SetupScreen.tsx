@@ -345,6 +345,7 @@ export default function SetupScreen({
           // Keep relations and world from imported char
           relations: importedChar.relations || [],
           world: importedChar.world || { ...DEFAULT_WORLD_CONTEXT },
+          cardConfig: importedChar.cardConfig ? { ...importedChar.cardConfig, token: undefined } : undefined,
           branches: [{ id: 'main', name: 'Nhánh chính (Gốc)', createdAt: Date.now() }]
         };
         

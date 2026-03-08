@@ -46,6 +46,13 @@ const CARD_STYLES: CardStyle[] = [
         name: 'SSR Game',
         icon: 'fa-dragon',
         templateId: 'ssr'
+    },
+    {
+        id: 'tpl_ticket',
+        type: 'template',
+        name: 'Event Ticket',
+        icon: 'fa-ticket',
+        templateId: 'ticket'
     }
 ];
 
@@ -63,7 +70,7 @@ const AuroCardView: React.FC<AuroCardViewProps> = ({ character, onClose, onSave,
   const [isOnline, setIsOnline] = useState(false);
   
   // Design State
-  const [selectedStyleId, setSelectedStyleId] = useState('tpl_trading');
+  const [selectedStyleId, setSelectedStyleId] = useState('tpl_ticket');
   const [colorId, setColorId] = useState('white');
   
   // Designer Config
@@ -190,17 +197,15 @@ const AuroCardView: React.FC<AuroCardViewProps> = ({ character, onClose, onSave,
           if (!html2canvas) { alert("Lỗi thư viện."); return; }
 
           const canvas = await html2canvas(cardRef.current, {
-              scale: 2, 
+              scale: 4, 
               useCORS: true, 
               allowTaint: true, 
               backgroundColor: null,
-              logging: false,
-              width: 420,
-              height: 420
+              logging: false
           });
 
           const link = document.createElement('a');
-          link.download = `AuroCard_${character.name.replace(/\s+/g,'_')}.png`;
+          link.download = `AuroCard_${character.name.replace(/\s+/g,'_')}_${selectedStyleId}.png`;
           link.href = canvas.toDataURL('image/png', 1.0);
           link.click();
       } catch (e) {
@@ -212,13 +217,7 @@ const AuroCardView: React.FC<AuroCardViewProps> = ({ character, onClose, onSave,
   };
 
   // --- BRAND LOGO (Gradient & Glass) ---
-  const BrandLogo = () => (
-      <div className="absolute top-4 right-4 z-30 bg-white/20 backdrop-blur-md border border-white/30 p-2 px-3 rounded-xl shadow-lg flex flex-col items-center group animate-in zoom-in duration-500">
-          <span className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 uppercase tracking-tighter leading-none drop-shadow-sm">AURO</span>
-          <div className="h-[1px] w-full bg-white/40 my-0.5"></div>
-          <span className="text-[6px] font-bold text-slate-800 uppercase tracking-[0.2em]">WORLD CARD</span>
-      </div>
-  );
+  // Removed watermark as requested
 
   // --- RENDER: TEMPLATE - TRADING CARD (Modern, Neon) ---
   const renderTemplateTrading = () => (
@@ -246,10 +245,13 @@ const AuroCardView: React.FC<AuroCardViewProps> = ({ character, onClose, onSave,
               
               <div className="flex items-end gap-3">
                   <div className="flex-1 bg-black/40 backdrop-blur-md p-3 rounded-xl border-l-2 border-indigo-500">
-                      <div className="relative mb-1">
+                      <div className="relative mb-1 flex items-center gap-2">
                           <p className="text-[9px] text-indigo-200 font-bold uppercase tracking-widest">
                               {character.status}
                           </p>
+                          {character.youtubeLink && (
+                              <i className="fa-brands fa-youtube text-rose-500 text-[10px]" title="Có nhạc nền"></i>
+                          )}
                       </div>
                       <div className="relative">
                           <p className={`text-[10px] text-white/90 line-clamp-2 italic ${config.privacy.backstory ? 'blur-[8px] select-none opacity-40' : ''}`}>
@@ -289,8 +291,6 @@ const AuroCardView: React.FC<AuroCardViewProps> = ({ character, onClose, onSave,
   // --- RENDER: TEMPLATE - POLAROID (Vintage, Sticker) ---
   const renderTemplatePolaroid = () => (
       <div className="w-full h-full bg-[#f0f0f0] relative flex flex-col p-6 shadow-[inset_0_0_60px_rgba(0,0,0,0.05)] justify-center items-center">
-          {/* Tape */}
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 w-32 h-8 bg-rose-200/80 rotate-2 z-20 shadow-sm backdrop-blur-sm opacity-90"></div>
           
           {/* Photo Area */}
           <div className="bg-white p-3 pb-14 shadow-2xl rotate-[-2deg] relative z-10 border border-slate-200 w-full max-w-[340px] flex flex-col">
@@ -301,9 +301,10 @@ const AuroCardView: React.FC<AuroCardViewProps> = ({ character, onClose, onSave,
               
               {/* Handwritten Text Area */}
               <div className="text-center px-2">
-                  <h2 className={`text-3xl font-black text-slate-800 uppercase tracking-tighter ${currentColor.text}`}>{character.name}</h2>
+                  <h2 className={`text-3xl font-black text-slate-800 uppercase tracking-tighter ${currentColor.text} whitespace-pre-wrap`}>{character.name}</h2>
                   <div className="flex items-center justify-center gap-2 mt-2">
                       <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{token || 'TOKEN'}</p>
+                      {character.youtubeLink && <i className="fa-brands fa-youtube text-rose-500 text-[10px]" title="Có nhạc nền"></i>}
                   </div>
               </div>
           </div>
@@ -335,8 +336,8 @@ const AuroCardView: React.FC<AuroCardViewProps> = ({ character, onClose, onSave,
           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-40"></div>
 
           {/* SSR Badge */}
-          <div className="absolute top-6 left-6 z-20 animate-pulse">
-              <div className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-amber-200 via-yellow-400 to-amber-600 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] italic pr-2">
+          <div className="absolute top-6 left-6 z-20">
+              <div className="text-5xl font-black text-amber-400 italic pr-2">
                   SSR
               </div>
           </div>
@@ -345,7 +346,7 @@ const AuroCardView: React.FC<AuroCardViewProps> = ({ character, onClose, onSave,
           <div className="mt-auto relative z-20 p-6">
               <div className="flex items-end justify-between mb-3">
                   <div>
-                      <h2 className="text-4xl font-black text-white uppercase tracking-tighter drop-shadow-[0_0_15px_rgba(79,70,229,1)]">
+                      <h2 className="text-4xl font-black text-white uppercase tracking-tighter whitespace-pre-wrap">
                           {character.name}
                       </h2>
                   </div>
@@ -385,9 +386,14 @@ const AuroCardView: React.FC<AuroCardViewProps> = ({ character, onClose, onSave,
                   {/* Blurred Description for SSR */}
                   <div className="relative border-t border-white/5 pt-2">
                       <div className="flex items-center gap-2 mb-1">
-                          <span className="px-2 py-0.5 bg-indigo-600 text-white text-[8px] font-bold uppercase rounded border border-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.8)]">
+                          <span className="px-2 py-0.5 bg-indigo-600 text-white text-[8px] font-bold uppercase rounded border border-indigo-400">
                               {character.status}
                           </span>
+                          {character.youtubeLink && (
+                              <span className="px-2 py-0.5 bg-rose-600 text-white text-[8px] font-bold uppercase rounded border border-rose-400 flex items-center gap-1">
+                                  <i className="fa-brands fa-youtube"></i> OST
+                              </span>
+                          )}
                       </div>
                       <p className={`text-[9px] text-white/60 line-clamp-2 leading-relaxed ${config.privacy.backstory ? 'blur-[8px] select-none opacity-40' : ''}`}>
                           {character.description}
@@ -395,10 +401,81 @@ const AuroCardView: React.FC<AuroCardViewProps> = ({ character, onClose, onSave,
                       {config.privacy.backstory && (
                           <div className="absolute inset-0 flex items-center justify-center pt-2 bg-slate-900 rounded-lg border border-white/10 shadow-2xl">
                               <div className="bg-slate-800 text-white px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest border border-amber-500/50 flex items-center gap-2 shadow-xl transform scale-105">
-                                  <i className="fa-solid fa-lock text-amber-500 animate-pulse"></i>
+                                  <i className="fa-solid fa-lock text-amber-500"></i>
                                   <span className="text-amber-100">BẢO MẬT</span>
                               </div>
                           </div>
+                      )}
+                  </div>
+              </div>
+          </div>
+      </div>
+  );
+
+  // --- RENDER: TEMPLATE - TICKET (Event Ticket) ---
+  const renderTemplateTicket = () => (
+      <div className="w-full h-full relative bg-white overflow-hidden flex flex-col border-[12px] border-black">
+          {/* Top Section: Event Info */}
+          <div className="bg-black text-white p-4 flex justify-between items-center shrink-0">
+              <div className="text-[10px] font-black uppercase tracking-[0.2em]">ADMIT ONE</div>
+              <div className="flex gap-1">
+                  {[...Array(5)].map((_, i) => (
+                      <div key={i} className="w-1 h-1 rounded-full bg-white/30"></div>
+                  ))}
+              </div>
+          </div>
+
+          {/* Main Content */}
+          <div className="flex-1 relative flex flex-col p-6">
+              {/* Background Pattern */}
+              <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:16px_16px]"></div>
+
+              <div className="flex gap-4 mb-4 relative z-10">
+                  <div className="w-24 h-24 bg-black shrink-0 overflow-hidden border-2 border-black shadow-lg rotate-[-3deg]">
+                      <img src={character.avatar} className="w-full h-full object-cover grayscale contrast-125" crossOrigin="anonymous" />
+                  </div>
+                  <div className="flex-1 min-w-0 pt-2">
+                      <h2 className="text-xl font-black text-black uppercase tracking-tighter leading-none mb-1 line-clamp-2">{character.name}</h2>
+                      <p className="text-[10px] font-bold text-black/50 uppercase tracking-widest border-b-2 border-black/10 pb-2 mb-2">
+                          {character.status || 'SPECIAL GUEST'}
+                      </p>
+                      <div className="flex gap-2">
+                          <span className="px-2 py-0.5 bg-black text-white text-[8px] font-bold uppercase tracking-wider">VIP</span>
+                          {character.youtubeLink && <span className="px-2 py-0.5 bg-rose-600 text-white text-[8px] font-bold uppercase tracking-wider"><i className="fa-brands fa-youtube"></i></span>}
+                          <span className="px-2 py-0.5 border border-black text-black text-[8px] font-bold uppercase tracking-wider">NO.{token?.substring(0,6) || '000000'}</span>
+                      </div>
+                  </div>
+              </div>
+
+              {/* Description */}
+              <div className="relative z-10 mb-auto">
+                  <p className={`text-[10px] font-mono text-black/70 leading-relaxed text-justify line-clamp-6 ${config.privacy.backstory ? 'blur-[4px] select-none opacity-40' : ''}`}>
+                      {character.openingMessage || character.description}
+                  </p>
+                  {config.privacy.backstory && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                          <i className="fa-solid fa-lock text-black/20 text-2xl"></i>
+                      </div>
+                  )}
+              </div>
+
+              {/* Bottom Barcode Section */}
+              <div className="mt-4 pt-4 border-t-2 border-dashed border-black/20 flex justify-between items-end relative z-10">
+                  <div className="flex flex-col gap-1">
+                      <div className="text-[8px] font-black uppercase tracking-widest text-black/40">SCAN FOR ENTRY</div>
+                      <div className="h-8 w-32 bg-[url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAABCAYAAAD5PA/NAAAAFklEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=')] bg-repeat-x opacity-80"></div>
+                  </div>
+                  <div className="bg-white p-1 border-2 border-black">
+                      {token ? (
+                        <QRCodeSVG 
+                          value={token} 
+                          size={48} 
+                          level="M" 
+                          includeMargin={false}
+                          fgColor="#000000"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 bg-slate-200 animate-pulse"></div>
                       )}
                   </div>
               </div>
@@ -440,9 +517,10 @@ const AuroCardView: React.FC<AuroCardViewProps> = ({ character, onClose, onSave,
                        {currentStyle.templateId === 'trading' && renderTemplateTrading()}
                        {currentStyle.templateId === 'polaroid' && renderTemplatePolaroid()}
                        {currentStyle.templateId === 'ssr' && renderTemplateSSR()}
+                       {currentStyle.templateId === 'ticket' && renderTemplateTicket()}
 
                        {/* BRAND LOGO (Always visible unless Polaroid covers it severely, though polaroid has space) */}
-                       {currentStyle.templateId !== 'polaroid' && <BrandLogo />}
+                       {/* Removed watermark as requested */}
                    </div>
                    
                    {/* Loader */}
@@ -466,45 +544,41 @@ const AuroCardView: React.FC<AuroCardViewProps> = ({ character, onClose, onSave,
            <div className="w-full max-w-[420px] mb-6 relative z-20 space-y-6 bg-slate-800/50 p-6 rounded-[2.5rem] border border-white/10 backdrop-blur-md shadow-2xl">
                
                {/* 1. STYLE SELECTOR */}
-               <div>
-                   <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-4 block ml-1"><i className="fa-solid fa-layer-group mr-2 text-indigo-400"></i> 1. Chọn Mẫu Thẻ</label>
-                   <div className="overflow-x-auto custom-scrollbar pb-2">
-                       <div className="flex gap-3">
-                           {CARD_STYLES.map(s => (
-                               <button 
-                                   key={s.id}
-                                   onClick={() => setSelectedStyleId(s.id)}
-                                   className={`flex flex-col items-center gap-2 min-w-[85px] p-3 rounded-2xl border transition-all group ${selectedStyleId === s.id ? 'bg-indigo-600 border-indigo-400 text-white shadow-lg scale-105' : 'bg-white/5 border-white/5 hover:bg-white/10 text-slate-400'}`}
-                               >
-                                   <div className="text-xl relative">
-                                       <i className={`fa-solid ${s.icon}`}></i>
-                                   </div>
-                                   <span className="text-[9px] font-bold uppercase text-center leading-tight tracking-wider">{s.name}</span>
-                                </button>
-                           ))}
-                       </div>
+               <div className="bg-white/5 p-5 rounded-3xl border border-white/5">
+                   <label className="text-[10px] font-black text-white/50 uppercase tracking-[0.2em] mb-4 block ml-1"><i className="fa-solid fa-layer-group mr-2 text-indigo-400"></i> 1. Chọn Mẫu Thẻ</label>
+                   <div className="flex gap-3 overflow-x-auto custom-scrollbar pb-2">
+                       {CARD_STYLES.map(s => (
+                           <button 
+                               key={s.id}
+                               onClick={() => setSelectedStyleId(s.id)}
+                               className={`flex flex-col items-center gap-2 min-w-[85px] p-4 rounded-2xl border transition-all group ${selectedStyleId === s.id ? 'bg-indigo-600 border-indigo-400 text-white shadow-lg scale-105' : 'bg-white/5 border-white/5 hover:bg-white/10 text-slate-400'}`}
+                           >
+                               <div className="text-xl relative">
+                                   <i className={`fa-solid ${s.icon}`}></i>
+                               </div>
+                               <span className="text-[9px] font-bold uppercase text-center leading-tight tracking-wider">{s.name}</span>
+                            </button>
+                       ))}
                    </div>
                </div>
 
                {/* 2. PRIVACY & FIELDS */}
-               <div className="space-y-4">
-                   <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-2 block ml-1"><i className="fa-solid fa-shield-halved mr-2 text-emerald-400"></i> 2. Cấu hình Dữ liệu & Bảo mật</label>
-                   <div className="grid grid-cols-1 gap-2.5">
+               <div className="bg-white/5 p-5 rounded-3xl border border-white/5">
+                   <label className="text-[10px] font-black text-white/50 uppercase tracking-[0.2em] mb-4 block ml-1"><i className="fa-solid fa-shield-halved mr-2 text-emerald-400"></i> 2. Cấu hình Dữ liệu</label>
+                   <div className="grid grid-cols-1 gap-3">
                        {(['backstory', 'greeting', 'appearance', 'npcRelations'] as (keyof CardPrivacySettings)[]).map(field => (
-                           <div key={field} className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all ${config.includedFields.includes(field) ? 'bg-white/5 border-white/10' : 'bg-black/20 border-transparent opacity-40'}`}>
+                           <div key={field} className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${config.includedFields.includes(field) ? 'bg-white/5 border-white/10' : 'bg-black/20 border-transparent opacity-40'}`}>
                                <div className="flex items-center gap-3">
-                                   <div className="relative flex items-center">
-                                       <input 
-                                           type="checkbox" 
-                                           id={`field-${field}`}
-                                           checked={config.includedFields.includes(field)} 
-                                           onChange={() => {
-                                               toggleField(field);
-                                               if (field === 'backstory') toggleField('personality');
-                                           }}
-                                           className="w-5 h-5 rounded-lg border-white/20 bg-transparent text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                                       />
-                                   </div>
+                                   <input 
+                                       type="checkbox" 
+                                       id={`field-${field}`}
+                                       checked={config.includedFields.includes(field)} 
+                                       onChange={() => {
+                                           toggleField(field);
+                                           if (field === 'backstory') toggleField('personality');
+                                       }}
+                                       className="w-5 h-5 rounded-lg border-white/20 bg-transparent text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                   />
                                    <label htmlFor={`field-${field}`} className="text-[11px] font-black uppercase tracking-wider cursor-pointer text-white/80">{fieldLabels[field]}</label>
                                </div>
                                {field === 'backstory' && (
@@ -513,7 +587,7 @@ const AuroCardView: React.FC<AuroCardViewProps> = ({ character, onClose, onSave,
                                            togglePrivacy(field);
                                            if (field === 'backstory') togglePrivacy('personality');
                                        }} 
-                                       className={`h-9 px-4 rounded-xl flex items-center gap-2 transition-all font-black text-[9px] uppercase tracking-widest ${config.privacy[field] ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'}`}
+                                       className={`h-8 px-3 rounded-xl flex items-center gap-2 transition-all font-black text-[9px] uppercase tracking-widest ${config.privacy[field] ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'}`}
                                    >
                                        <i className={`fa-solid ${config.privacy[field] ? 'fa-lock' : 'fa-lock-open'}`}></i>
                                        {config.privacy[field] ? 'Đã khóa' : 'Công khai'}
@@ -613,22 +687,22 @@ const AuroCardView: React.FC<AuroCardViewProps> = ({ character, onClose, onSave,
                             }
                         }} 
                         disabled={isSavingConfig}
-                        className="py-4 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 rounded-[1.5rem] font-black uppercase text-[11px] tracking-widest hover:bg-emerald-600/30 transition-all active:scale-95 disabled:opacity-50"
+                        className="py-3 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-emerald-600/30 transition-all active:scale-95 disabled:opacity-50"
                     >
                         {isSavingConfig ? <i className="fa-solid fa-spinner fa-spin mr-2"></i> : <i className="fa-solid fa-floppy-disk mr-2"></i>}
                         Lưu Cấu Hình
                     </button>
-                    <button onClick={onClose} className="py-4 bg-white/5 text-white border border-white/10 rounded-[1.5rem] font-black uppercase text-[11px] tracking-widest hover:bg-white/10 transition-all active:scale-95">
+                    <button onClick={onClose} className="py-3 bg-white/5 text-white border border-white/10 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-white/10 transition-all active:scale-95">
                         Đóng
                     </button>
                 </div>
                <button 
                    onClick={handleDownload} 
                    disabled={isLoadingToken || isCapturing}
-                   className="w-full py-4.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-[1.5rem] font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-indigo-500/20 hover:from-indigo-500 hover:to-purple-500 transition-all disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-3 border border-white/10 active:scale-95"
+                   className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-indigo-500/20 hover:from-indigo-500 hover:to-purple-500 transition-all disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-3 border border-white/10 active:scale-95"
                >
                    {isCapturing ? <i className="fa-solid fa-spinner fa-spin"></i> : <i className="fa-solid fa-download"></i>}
-                   LƯU ẢNH THẺ (1:1)
+                   TẢI ẢNH THẺ
                </button>
            </div>
            

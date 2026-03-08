@@ -33,6 +33,8 @@ interface MainChatViewProps {
   onHome?: () => void;
   onDashboard?: () => void;
   lastAffectionChange?: number | null;
+  isGenerating?: boolean;
+  onStop?: () => void;
 }
 
 const MainChatView: React.FC<MainChatViewProps> = ({
@@ -61,7 +63,9 @@ const MainChatView: React.FC<MainChatViewProps> = ({
   onSaveMemory,
   onHome,
   onDashboard,
-  lastAffectionChange
+  lastAffectionChange,
+  isGenerating,
+  onStop
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [productProposal, setProductProposal] = useState<InventoryItem | null>(null);
@@ -211,6 +215,8 @@ const MainChatView: React.FC<MainChatViewProps> = ({
 
       <InputBar
         onSend={handleSendMessage} // Use the new handler
+        onStop={onStop}
+        isGenerating={isGenerating}
         user={user}
         onNavigate={(v) => {
             if (v === 'settings') {

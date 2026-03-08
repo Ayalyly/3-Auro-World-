@@ -324,7 +324,8 @@ export class GeminiService {
     systemInstruction?: string,
     maxTokens: number = 2000,
     temperature: number = 0.9,
-    thinkingConfig?: { thinkingLevel: 'LOW' | 'HIGH' }
+    thinkingConfig?: { thinkingLevel: 'LOW' | 'HIGH' },
+    signal?: AbortSignal
   ): AsyncGenerator<string> {
     let actualModelName = modelName || DEFAULT_MODEL;
     if (actualModelName === "auto-fast") actualModelName = "gemini-3.1-flash-lite-preview";
@@ -333,6 +334,7 @@ export class GeminiService {
     if (this.isGroqModel(actualModelName)) {
       const stream = this.generateGroqContentStream(actualModelName, contents, systemInstruction, maxTokens, temperature);
       for await (const chunk of stream) {
+        if (signal?.aborted) break;
         if (chunk.text) {
           yield chunk.text;
         }
@@ -365,6 +367,7 @@ export class GeminiService {
       });
 
       for await (const chunk of result) {
+        if (signal?.aborted) break;
         if (chunk.text) {
           yield chunk.text;
         }
@@ -549,7 +552,8 @@ export class GeminiService {
     userMsg: string,
     user: UserProfile,
     settings: AppSettings,
-    image?: string
+    image?: string,
+    signal?: AbortSignal
   ): AsyncGenerator<string> {
     const activeSystem = settings.systemPrompts?.find((p) => p.isActive)?.content || "";
     const activePrefix = settings.prefixes?.find((p) => p.isActive)?.content || "";
@@ -570,6 +574,7 @@ export class GeminiService {
     if (this.isProxyModel(settings.model)) {
         const stream = proxyService.sendMessageStream(character, history, userMsg, user, settings, image, systemPrompt);
         for await (const chunk of stream) {
+            if (signal?.aborted) break;
             yield chunk;
         }
         return;
@@ -578,6 +583,7 @@ export class GeminiService {
     if (this.isGroqModel(settings.model)) {
       const stream = groqService.sendMessageStream(character, history, userMsg, user, settings, image, systemPrompt);
       for await (const chunk of stream) {
+        if (signal?.aborted) break;
         yield chunk;
       }
       return;
@@ -614,10 +620,12 @@ export class GeminiService {
       systemPrompt,
       apiMaxTokens,
       settings.temperature || 0.9,
-      settings.thinkingEnabled ? { thinkingLevel: settings.thinkingLevel || 'HIGH' } : undefined
+      settings.thinkingEnabled ? { thinkingLevel: settings.thinkingLevel || 'HIGH' } : undefined,
+      signal
     );
 
     for await (const chunk of stream) {
+      if (signal?.aborted) break;
       yield chunk;
     }
   }

@@ -19,6 +19,13 @@ interface PhoneViewProps {
 
 import UserPhoneView from './UserPhoneView';
 
+const getYoutubeVideoId = (url: string) => {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+};
+
 const RealisticPhoneView: React.FC<PhoneViewProps> = ({ 
   character, user, onClose, onUpdateCharacter, onUpdateUser, onSendMessageToNPC, t,
   settings, geminiService, onSendMessage, messages
@@ -78,12 +85,46 @@ const RealisticPhoneView: React.FC<PhoneViewProps> = ({
   // Voice Settings State
   const [voiceSettings, setVoiceSettings] = useState(() => {
     const saved = localStorage.getItem('auro_voice_settings');
-    return saved ? JSON.parse(saved) : { pitch: 1, rate: 1, voiceURI: '', useGeminiTTS: false, geminiVoice: 'Kore', provider: 'gemini' };
+    const defaultSettings = { 
+        pitch: 1, 
+        rate: 1, 
+        voiceURI: '', 
+        useGeminiTTS: false, 
+        geminiVoice: 'Kore', 
+        provider: 'gemini',
+        youtubeLinks: ['https://www.youtube.com/watch?v=jfKfPfyJRdk'],
+        selectedYoutubeLink: 'https://www.youtube.com/watch?v=jfKfPfyJRdk',
+        videoScale: 1.5
+    };
+    return saved ? { ...defaultSettings, ...JSON.parse(saved) } : defaultSettings;
   });
+  const [newYoutubeLink, setNewYoutubeLink] = useState('');
 
   useEffect(() => {
     localStorage.setItem('auro_voice_settings', JSON.stringify(voiceSettings));
   }, [voiceSettings]);
+
+  // Sync character youtube link
+  useEffect(() => {
+      if (character.youtubeLink) {
+          setVoiceSettings(prev => {
+              const currentLinks = prev.youtubeLinks || [];
+              // Only add if not exists
+              const newLinks = currentLinks.includes(character.youtubeLink!) 
+                  ? currentLinks 
+                  : [...currentLinks, character.youtubeLink!];
+              
+              // Auto select if it's the character's link (optional: or just add it)
+              // Let's auto select it to give the "theme" feel
+              return {
+                  ...prev,
+                  youtubeLinks: newLinks,
+                  selectedYoutubeLink: character.youtubeLink!
+              };
+          });
+      }
+  }, [character.id, character.youtubeLink]);
+
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [isCalling, setIsCalling] = useState(false);
   const [callStatus, setCallStatus] = useState('Ready');
@@ -567,9 +608,26 @@ const RealisticPhoneView: React.FC<PhoneViewProps> = ({
 
           {/* USER CALL INTERFACE */}
           {tab === 'userCall' && (
-             <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-b from-emerald-950 to-black text-white p-8 animate-in fade-in duration-500 overflow-hidden">
-                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 animate-pulse"></div>
-                <div className="absolute w-64 h-64 bg-emerald-500/20 rounded-full blur-[80px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse duration-[3000ms]"></div>
+             <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-gradient-to-b from-emerald-950 to-black text-white p-8 animate-in fade-in duration-500 overflow-hidden rounded-[2.5rem]">
+                {isCalling && voiceSettings.selectedYoutubeLink && getYoutubeVideoId(voiceSettings.selectedYoutubeLink) ? (
+                    <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden rounded-[2.5rem]">
+                        <iframe 
+                            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-60 transition-all duration-500"
+                            style={{ width: `${(voiceSettings.videoScale || 1.5) * 100}%`, height: `${(voiceSettings.videoScale || 1.5) * 100}%` }}
+                            src={`https://www.youtube.com/embed/${getYoutubeVideoId(voiceSettings.selectedYoutubeLink)}?autoplay=1&mute=1&loop=1&controls=0&showinfo=0&rel=0&playlist=${getYoutubeVideoId(voiceSettings.selectedYoutubeLink)}`}
+                            title="YouTube video player" 
+                            frameBorder="0" 
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                            allowFullScreen
+                        ></iframe>
+                        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/20"></div>
+                    </div>
+                ) : (
+                    <>
+                        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 animate-pulse z-0"></div>
+                        <div className="absolute w-64 h-64 bg-emerald-500/20 rounded-full blur-[80px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse duration-[3000ms] z-0"></div>
+                    </>
+                )}
                 
                 <div className="flex-1 flex flex-col items-center justify-center gap-8 z-10 w-full mb-10">
                    <div className="relative">
@@ -610,7 +668,7 @@ const RealisticPhoneView: React.FC<PhoneViewProps> = ({
                     <button onClick={() => { setTab('home'); setUserTab('home'); }} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
                         <i className="fa-solid fa-arrow-left"></i>
                     </button>
-                    <h2 className="text-lg font-black uppercase tracking-widest">Cài đặt giọng nói</h2>
+                    <h2 className="text-lg font-black uppercase tracking-widest">Cài đặt</h2>
                 </div>
 
                 <div className="space-y-6 overflow-y-auto custom-scrollbar flex-1">
@@ -721,12 +779,96 @@ const RealisticPhoneView: React.FC<PhoneViewProps> = ({
                         </>
                     )}
 
+                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                        <div className="flex justify-between">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Độ phóng to Video</label>
+                            <span className="text-[10px] font-mono text-emerald-400">{Math.round((voiceSettings.videoScale || 1.5) * 100)}%</span>
+                        </div>
+                        <input 
+                            type="range" min="1" max="3" step="0.1"
+                            value={voiceSettings.videoScale || 1.5}
+                            onChange={(e) => setVoiceSettings(prev => ({ ...prev, videoScale: parseFloat(e.target.value) }))}
+                            className="w-full accent-emerald-500"
+                        />
+                    </div>
+
                     <button 
                         onClick={testVoice}
                         className="w-full py-3 bg-white/10 hover:bg-white/20 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
                     >
                         <i className="fa-solid fa-play"></i> Nghe thử giọng
                     </button>
+
+                    <div className="space-y-4 mt-6 pt-6 border-t border-white/10">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Video Nền Cuộc Gọi (YouTube)</label>
+                        
+                        <div className="flex gap-2">
+                            <input 
+                                type="text"
+                                value={newYoutubeLink}
+                                onChange={(e) => setNewYoutubeLink(e.target.value)}
+                                placeholder="Nhập link YouTube (VD: https://youtu.be/...)"
+                                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs outline-none focus:border-emerald-500/50 transition-colors"
+                            />
+                            <button 
+                                onClick={() => {
+                                    if (newYoutubeLink.trim() && !voiceSettings.youtubeLinks?.includes(newYoutubeLink.trim())) {
+                                        setVoiceSettings(prev => ({
+                                            ...prev,
+                                            youtubeLinks: [...(prev.youtubeLinks || []), newYoutubeLink.trim()],
+                                            selectedYoutubeLink: newYoutubeLink.trim()
+                                        }));
+                                        setNewYoutubeLink('');
+                                    }
+                                }}
+                                className="w-10 h-10 bg-emerald-500/20 text-emerald-400 rounded-xl flex items-center justify-center hover:bg-emerald-500/30 transition-colors"
+                            >
+                                <i className="fa-solid fa-plus"></i>
+                            </button>
+                        </div>
+
+                        <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
+                            {(voiceSettings.youtubeLinks || []).map((link: string, idx: number) => (
+                                <div 
+                                    key={idx} 
+                                    className={`flex items-center justify-between p-2 rounded-xl border transition-colors ${
+                                        voiceSettings.selectedYoutubeLink === link 
+                                        ? 'bg-emerald-500/20 border-emerald-500/50' 
+                                        : 'bg-white/5 border-white/10 hover:bg-white/10 cursor-pointer'
+                                    }`}
+                                    onClick={() => setVoiceSettings(prev => ({ ...prev, selectedYoutubeLink: link }))}
+                                >
+                                    <div className="flex items-center gap-2 overflow-hidden">
+                                        <i className={`fa-brands fa-youtube text-lg ${voiceSettings.selectedYoutubeLink === link ? 'text-emerald-400' : 'text-slate-400'}`}></i>
+                                        <span className={`text-xs truncate ${voiceSettings.selectedYoutubeLink === link ? 'text-emerald-400' : 'text-slate-300'}`}>
+                                            {link}
+                                        </span>
+                                    </div>
+                                    <button 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setVoiceSettings(prev => {
+                                                const newLinks = (prev.youtubeLinks || []).filter(l => l !== link);
+                                                return {
+                                                    ...prev,
+                                                    youtubeLinks: newLinks,
+                                                    selectedYoutubeLink: prev.selectedYoutubeLink === link ? (newLinks[0] || '') : prev.selectedYoutubeLink
+                                                };
+                                            });
+                                        }}
+                                        className="w-6 h-6 rounded-full flex items-center justify-center text-rose-400 hover:bg-rose-500/20 transition-colors shrink-0"
+                                    >
+                                        <i className="fa-solid fa-trash text-[10px]"></i>
+                                    </button>
+                                </div>
+                            ))}
+                            {(!voiceSettings.youtubeLinks || voiceSettings.youtubeLinks.length === 0) && (
+                                <div className="text-center py-4 text-slate-500 italic text-[10px]">
+                                    Chưa có video nền nào.
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
              </div>
           )}
@@ -1226,7 +1368,7 @@ const RealisticPhoneView: React.FC<PhoneViewProps> = ({
              </div>
           )}
                     {tab === 'call' && (
-             <div className="flex-1 flex flex-col items-center justify-center bg-gradient-to-b from-indigo-950 to-black text-white p-8 animate-in fade-in duration-500 relative overflow-hidden">
+             <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-gradient-to-b from-indigo-950 to-black text-white p-8 animate-in fade-in duration-500 overflow-hidden rounded-[2.5rem]">
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 animate-pulse"></div>
                 <div className="absolute w-64 h-64 bg-indigo-500/20 rounded-full blur-[80px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse duration-[3000ms]"></div>
                 <div className="flex-1 flex flex-col items-center justify-center gap-8 z-10 w-full mb-10">

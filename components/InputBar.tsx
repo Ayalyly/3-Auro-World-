@@ -7,6 +7,8 @@ import TransferModal from './TransferModal'; // Import TransferModal
 
 interface InputBarProps {
   onSend: (text: string, image?: string) => void;
+  onStop?: () => void;
+  isGenerating?: boolean;
   disabled?: boolean;
   user?: UserProfile;
   onNavigate: (view: AppView) => void; // New prop for navigation
@@ -14,7 +16,7 @@ interface InputBarProps {
   isApiKeyMissing?: boolean;
 }
 
-const InputBar: React.FC<InputBarProps> = ({ onSend, disabled, user, onNavigate, theme, isApiKeyMissing }) => {
+const InputBar: React.FC<InputBarProps> = ({ onSend, onStop, isGenerating, disabled, user, onNavigate, theme, isApiKeyMissing }) => {
   const [inputValue, setInputValue] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [showMenu, setShowMenu] = useState(false); // Controls the main navigation menu
@@ -223,13 +225,21 @@ const InputBar: React.FC<InputBarProps> = ({ onSend, disabled, user, onNavigate,
           />
         </div>
         
-        {/* Send Button */}
+        {/* Send/Stop Button */}
         <button 
-          onClick={handleSend}
-          disabled={(!inputValue.trim() && !imagePreview) || isActuallyDisabled}
-          className="w-12 h-10 mb-0.5 rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-200 flex items-center justify-center disabled:opacity-50 disabled:shadow-none active:scale-90 transition-all shrink-0 hover:shadow-xl hover:shadow-indigo-300"
+          onClick={isGenerating ? onStop : handleSend}
+          disabled={(!isGenerating && !inputValue.trim() && !imagePreview) || (isActuallyDisabled && !isGenerating)}
+          className={`w-12 h-10 mb-0.5 rounded-2xl text-white shadow-lg flex items-center justify-center disabled:opacity-50 disabled:shadow-none active:scale-90 transition-all shrink-0 hover:shadow-xl ${
+            isGenerating 
+              ? 'bg-rose-500 shadow-rose-200 hover:shadow-rose-300' 
+              : 'bg-indigo-600 shadow-indigo-200 hover:shadow-indigo-300'
+          }`}
         >
-          <i className="fa-solid fa-paper-plane text-sm"></i>
+          {isGenerating ? (
+            <i className="fa-solid fa-stop text-sm animate-pulse"></i>
+          ) : (
+            <i className="fa-solid fa-paper-plane text-sm"></i>
+          )}
         </button>
       </div>
     </div>

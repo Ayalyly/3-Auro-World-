@@ -14,7 +14,7 @@ interface UserPhoneProps {
 }
 
 const UserPhoneView: React.FC<UserPhoneProps> = ({ user, onUpdateUser, onClose, currentTime, setPhoneMode, onSendMessageToNPC, character, setNpcTab, t }) => {
-  const [userTab, setUserTab] = React.useState<'home' | 'contacts' | 'messages' | 'settings' | 'contactDetail' | 'chatDetail'>('home');
+  const [userTab, setUserTab] = React.useState<'home' | 'contacts' | 'messages' | 'settings' | 'contactDetail' | 'chatDetail' | 'userCall' | 'voiceSettings' | 'call'>('home');
   const [userSelectedContact, setUserSelectedContact] = React.useState<UserNPCRelation | null>(null);
   const [editName, setEditName] = React.useState('');
   const [editType, setEditType] = React.useState('');
@@ -25,7 +25,164 @@ const UserPhoneView: React.FC<UserPhoneProps> = ({ user, onUpdateUser, onClose, 
   const [isSavingContact, setIsSavingContact] = React.useState(false);
   const [userMessageInput, setUserMessageInput] = React.useState('');
   const [isUserSending, setIsUserSending] = React.useState(false);
+  const [isMuted, setIsMuted] = React.useState(false);
   const userMessagesEndRef = React.useRef<HTMLDivElement>(null);
+
+  const [voiceSettings, setVoiceSettings] = React.useState(() => {
+    const saved = localStorage.getItem('auro_user_voice_settings');
+    const defaultSettings = { 
+        pitch: 1, 
+        rate: 1, 
+        voiceURI: '', 
+        youtubeLinks: ['https://www.youtube.com/watch?v=jfKfPfyJRdk'],
+        selectedYoutubeLink: 'https://www.youtube.com/watch?v=jfKfPfyJRdk',
+        videoScale: 1.5
+    };
+    return saved ? { ...defaultSettings, ...JSON.parse(saved) } : defaultSettings;
+  });
+  const [newYoutubeLink, setNewYoutubeLink] = React.useState('');
+  const [availableVoices, setAvailableVoices] = React.useState<SpeechSynthesisVoice[]>([]);
+  const [isCalling, setIsCalling] = React.useState(false);
+  const [callStatus, setCallStatus] = React.useState('Ready');
+  const synthesisRef = React.useRef<SpeechSynthesis>(window.speechSynthesis);
+  const recognitionRef = React.useRef<any>(null);
+
+  React.useEffect(() => {
+    if (character.youtubeLink) {
+      setVoiceSettings(prev => {
+        const currentLinks = prev.youtubeLinks || [];
+        const newLinks = currentLinks.includes(character.youtubeLink!) 
+          ? currentLinks 
+          : [...currentLinks, character.youtubeLink!];
+        
+        return {
+          ...prev,
+          youtubeLinks: newLinks,
+          selectedYoutubeLink: character.youtubeLink!
+        };
+      });
+    }
+  }, [character.id, character.youtubeLink]);
+
+  React.useEffect(() => {
+    localStorage.setItem('auro_user_voice_settings', JSON.stringify(voiceSettings));
+  }, [voiceSettings]);
+
+  React.useEffect(() => {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = false;
+      recognitionRef.current.interimResults = false;
+      recognitionRef.current.lang = 'vi-VN';
+
+      recognitionRef.current.onstart = () => setCallStatus('Listening...');
+      recognitionRef.current.onend = () => {
+        if (isCalling && callStatus !== 'Speaking...') setCallStatus('Processing...');
+      };
+      recognitionRef.current.onresult = async (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setCallStatus('Speaking...');
+        try { recognitionRef.current?.stop(); } catch(e) {}
+        
+        if (onSendMessageToNPC && user) {
+            const rel = user.npcRelations?.find(r => r.npcId === character.id);
+            const relation = rel ? rel.relationship : 'Người quen';
+            try {
+                const response = await onSendMessageToNPC(character.id, transcript, relation);
+                if (response) {
+                    speakWithBrowser(response);
+                } else {
+                    speakWithBrowser("Xin lỗi, tôi không nghe rõ.");
+                }
+            } catch (e) {
+                speakWithBrowser("Có lỗi xảy ra khi kết nối.");
+            }
+        }
+      };
+      recognitionRef.current.onerror = (event: any) => {
+        if (event.error === 'no-speech' && isCalling) {
+          try { recognitionRef.current?.start(); } catch(e) {}
+        }
+      };
+    }
+    return () => {
+      try { recognitionRef.current?.stop(); } catch(e) {}
+      synthesisRef.current.cancel();
+    };
+  }, [isCalling, callStatus, onSendMessageToNPC, user, character.id, voiceSettings, availableVoices]);
+
+  const speakWithBrowser = (text: string) => {
+      const utterance = new SpeechSynthesisUtterance(text);
+      const voice = availableVoices.find(v => v.voiceURI === voiceSettings.voiceURI);
+      if (voice) utterance.voice = voice;
+      utterance.pitch = voiceSettings.pitch;
+      utterance.rate = voiceSettings.rate;
+      utterance.onend = () => {
+           setCallStatus('Listening...');
+           try {
+              recognitionRef.current?.start();
+           } catch (e) {
+              // Ignore if already started
+           }
+      };
+      synthesisRef.current.speak(utterance);
+  };
+
+  const startCall = () => {
+    setIsCalling(true);
+    setCallStatus('Listening...');
+    try {
+        recognitionRef.current?.start();
+    } catch (e) {
+        console.error("Start error", e);
+    }
+  };
+
+  const endCall = () => {
+    setIsCalling(false);
+    setCallStatus('Ended');
+    recognitionRef.current?.stop();
+    synthesisRef.current.cancel();
+  };
+
+  const handleStopListening = () => {
+    try {
+        recognitionRef.current?.stop();
+    } catch (e) {
+        console.error("Stop error", e);
+    }
+  };
+
+  React.useEffect(() => {
+    const loadVoices = () => {
+      const voices = synthesisRef.current.getVoices();
+      setAvailableVoices(voices);
+      const viVoice = voices.find(v => v.lang.includes('vi'));
+      if (viVoice && !voiceSettings.voiceURI) {
+        setVoiceSettings(prev => ({ ...prev, voiceURI: viVoice.voiceURI }));
+      }
+    };
+    loadVoices();
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+      speechSynthesis.onvoiceschanged = loadVoices;
+    }
+  }, []);
+
+  const testVoice = async () => {
+    const utterance = new SpeechSynthesisUtterance("Alo, em nghe nè. Giọng này ổn không anh?");
+    const voice = availableVoices.find(v => v.voiceURI === voiceSettings.voiceURI);
+    if (voice) utterance.voice = voice;
+    utterance.pitch = voiceSettings.pitch;
+    utterance.rate = voiceSettings.rate;
+    synthesisRef.current.speak(utterance);
+  };
+
+  const getYoutubeVideoId = (url: string) => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  };
 
   React.useEffect(() => {
     if (userMessagesEndRef.current) {
@@ -189,12 +346,16 @@ const UserPhoneView: React.FC<UserPhoneProps> = ({ user, onUpdateUser, onClose, 
                         {[
                             { id: 'contacts', icon: 'fa-address-book', color: 'text-emerald-400', label: t('phone.app.contacts'), bg: 'from-emerald-500/20 to-emerald-900/20' },
                             { id: 'messages', icon: 'fa-comments', color: 'text-indigo-400', label: t('phone.app.messages'), bg: 'from-indigo-500/20 to-indigo-900/20' },
-                            { id: 'userCall', icon: 'fa-phone', color: 'text-rose-400', label: t('phone.app.call'), bg: 'from-rose-500/20 to-rose-900/20' },
+                            { id: 'call', icon: 'fa-phone', color: 'text-rose-400', label: t('phone.app.call'), bg: 'from-rose-500/20 to-rose-900/20' },
+                            { id: 'userCall', icon: 'fa-video', color: 'text-sky-400', label: 'VIDEO CALL', bg: 'from-sky-500/20 to-sky-900/20' },
                             { id: 'voiceSettings', icon: 'fa-sliders', color: 'text-amber-400', label: 'CÀI ĐẶT', bg: 'from-amber-500/20 to-amber-900/20' },
                         ].map((app) => (
                             <button key={app.id} onClick={() => {
                                 if (app.id === 'contacts') setUserTab('contacts');
                                 else if (app.id === 'messages') setUserTab('messages');
+                                else if (app.id === 'userCall') setUserTab('userCall');
+                                else if (app.id === 'voiceSettings') setUserTab('voiceSettings');
+                                else if (app.id === 'call') setUserTab('call');
                                 else if (setNpcTab) setNpcTab(app.id);
                             }} className="flex flex-col items-center gap-2 group">
                                 <div className={`w-14 h-14 rounded-[1.2rem] bg-gradient-to-br ${app.bg} border border-white/10 backdrop-blur-md flex items-center justify-center shadow-lg group-active:scale-95 transition-all group-hover:border-white/30 group-hover:shadow-[0_0_15px_rgba(255,255,255,0.1)] relative overflow-hidden`}>
@@ -215,8 +376,342 @@ const UserPhoneView: React.FC<UserPhoneProps> = ({ user, onUpdateUser, onClose, 
             </div>
         )}
 
+        {/* USER CALL INTERFACE */}
+        {/* REGULAR CALL APP */}
+        {userTab === 'call' && (
+            <div className="absolute inset-0 bg-[#0F0F1A] z-50 flex flex-col items-center justify-between py-12 animate-in fade-in duration-300">
+                {/* Header Info */}
+                <div className="flex flex-col items-center gap-6 mt-12">
+                    <div className="relative">
+                        <img 
+                            src={userSelectedContact?.npcAvatar || character.avatar || 'https://api.dicebear.com/7.x/bottts/svg?seed=Auro'} 
+                            className="w-40 h-40 rounded-full object-cover border-4 border-white/10 shadow-2xl animate-pulse" 
+                            style={{ animationDuration: isCalling ? '2s' : '0s' }}
+                        />
+                        {isCalling && (
+                            <div className="absolute inset-0 rounded-full border-4 border-emerald-500/50 animate-ping"></div>
+                        )}
+                    </div>
+                    <div className="text-center space-y-2">
+                        <h2 className="text-3xl font-black text-white tracking-tight">{userSelectedContact?.npcName || character.name || 'Unknown'}</h2>
+                        <p className="text-indigo-400 font-mono text-sm uppercase tracking-widest animate-pulse">{callStatus}</p>
+                    </div>
+                </div>
+
+                {/* Waveform Visualization (Fake) */}
+                <div className="flex items-center justify-center gap-1.5 h-24 w-full px-12 opacity-80">
+                     {isCalling && Array.from({ length: 15 }).map((_, i) => (
+                        <div 
+                            key={i} 
+                            className="w-1.5 bg-indigo-500 rounded-full animate-pulse"
+                            style={{ 
+                                height: `${30 + Math.random() * 70}%`,
+                                animationDelay: `${i * 0.1}s`,
+                                animationDuration: '0.8s'
+                            }}
+                        ></div>
+                    ))}
+                </div>
+
+                {/* Controls */}
+                <div className="flex items-center gap-8 mb-12">
+                     <button 
+                        onClick={() => setIsMuted(!isMuted)}
+                        className={`w-16 h-16 rounded-full flex items-center justify-center border transition-all active:scale-95 ${isMuted ? 'bg-white text-black border-white' : 'bg-white/10 text-white border-white/10 hover:bg-white/20'}`}
+                    >
+                        <i className={`fa-solid ${isMuted ? 'fa-microphone-slash' : 'fa-microphone'} text-2xl`}></i>
+                    </button>
+
+                    {isCalling && callStatus === 'Listening...' && (
+                        <button 
+                            onClick={handleStopListening}
+                            className="w-20 h-20 rounded-full flex items-center justify-center bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_30px_rgba(99,102,241,0.6)] border-4 border-indigo-400/30 transition-all active:scale-90 z-50"
+                        >
+                            <i className="fa-solid fa-check text-3xl"></i>
+                        </button>
+                    )}
+
+                    <button 
+                        onClick={isCalling ? endCall : startCall}
+                        className={`w-24 h-24 rounded-full flex items-center justify-center shadow-2xl transition-all active:scale-90 ${isCalling ? 'bg-rose-500 hover:bg-rose-600' : 'bg-emerald-500 hover:bg-emerald-600'}`}
+                    >
+                        <i className={`fa-solid ${isCalling ? 'fa-phone-slash' : 'fa-phone'} text-4xl text-white`}></i>
+                    </button>
+
+                     <button 
+                        onClick={() => {
+                            endCall();
+                            setUserTab('home');
+                        }}
+                        className="w-16 h-16 rounded-full flex items-center justify-center bg-white/10 text-white border border-white/10 hover:bg-white/20 transition-all active:scale-95"
+                    >
+                        <i className="fa-solid fa-xmark text-2xl"></i>
+                    </button>
+                </div>
+            </div>
+        )}
+
+        {/* USER VIDEO CALL */}
+        {userTab === 'userCall' && (
+             <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-black text-white overflow-hidden">
+                {/* Video Background */}
+                {voiceSettings.selectedYoutubeLink && getYoutubeVideoId(voiceSettings.selectedYoutubeLink) ? (
+                    <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+                        <iframe 
+                            className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transition-all duration-500 ${isCalling ? 'opacity-100' : 'opacity-30 blur-sm'}`}
+                            style={{ width: `${(voiceSettings.videoScale || 1.5) * 100}%`, height: `${(voiceSettings.videoScale || 1.5) * 100}%` }}
+                            src={`https://www.youtube.com/embed/${getYoutubeVideoId(voiceSettings.selectedYoutubeLink)}?autoplay=1&mute=1&loop=1&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&playlist=${
+                                (() => {
+                                    const currentId = getYoutubeVideoId(voiceSettings.selectedYoutubeLink);
+                                    const allIds = (voiceSettings.youtubeLinks || [])
+                                        .map(link => getYoutubeVideoId(link))
+                                        .filter(id => id !== null) as string[];
+                                    
+                                    // If we have multiple links, play them in sequence
+                                    if (allIds.length > 1) {
+                                        // Ensure current ID is first if possible, or just play the list
+                                        return allIds.join(',');
+                                    }
+                                    
+                                    // If single video (or empty list but selected exists), repeat it 10 times for smoother looping
+                                    // This tricks YouTube into preloading the "next" video (which is the same one)
+                                    return Array(10).fill(currentId).join(',');
+                                })()
+                            }`}
+                            title="YouTube video player" 
+                            frameBorder="0" 
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                            allowFullScreen
+                        ></iframe>
+                        {!isCalling && <div className="absolute inset-0 bg-black/40"></div>}
+                    </div>
+                ) : (
+                    <div className="absolute inset-0 bg-gradient-to-b from-emerald-950 to-black z-0">
+                         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 animate-pulse"></div>
+                    </div>
+                )}
+                
+                {/* Call Info (Avatar + Name) - Only show when NOT calling or if no video */}
+                {(!isCalling || !voiceSettings.selectedYoutubeLink) && (
+                    <div className="flex-1 flex flex-col items-center justify-center gap-8 z-10 w-full mb-10 animate-in fade-in zoom-in duration-300">
+                       <div className="relative">
+                           <div className={`absolute -inset-6 bg-emerald-500/20 rounded-full blur-xl animate-pulse`}></div>
+                           <img src={character.avatar} className="w-32 h-32 rounded-full border-4 border-[#09090b] shadow-2xl relative z-10 object-cover bg-slate-800" />
+                       </div>
+                       <div className="text-center">
+                          <h3 className="text-2xl font-black uppercase tracking-widest text-white drop-shadow-md">{character.name}</h3>
+                          <p className="text-emerald-400 font-mono text-[10px] uppercase tracking-[0.4em] mt-3 animate-pulse">{callStatus}</p>
+                       </div>
+                    </div>
+                )}
+
+                {/* Active Call UI (Video Call Style) */}
+                {isCalling && voiceSettings.selectedYoutubeLink && (
+                    <div className="absolute inset-0 z-10 flex flex-col justify-between p-6 pointer-events-none">
+                        {/* Top Bar */}
+                        <div className="flex justify-between items-start">
+                             <div className="bg-black/20 backdrop-blur-md rounded-full px-4 py-2 flex items-center gap-2 border border-white/10 shadow-lg">
+                                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                                <span className="text-[10px] font-mono tracking-widest text-white/90">{callStatus}</span>
+                             </div>
+                             
+                             {/* Self View (User Avatar) */}
+                             <div className="w-24 h-32 bg-black/50 backdrop-blur-md rounded-xl border border-white/20 overflow-hidden shadow-2xl pointer-events-auto cursor-move hover:scale-105 transition-transform">
+                                <img src={user?.avatar || `https://api.dicebear.com/7.x/notionists/svg?seed=${user?.name}`} className="w-full h-full object-cover opacity-90" />
+                             </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Controls Container */}
+                <div className={`w-full z-20 pb-8 transition-all duration-500 ${isCalling ? 'absolute bottom-0 px-8 bg-gradient-to-t from-black/80 to-transparent pt-20' : 'space-y-8 relative'}`}>
+                    {!isCalling ? (
+                        <div className="flex justify-center">
+                            <button onClick={startCall} className="w-20 h-20 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(16,185,129,0.5)] active:scale-90 transition-all z-10 hover:bg-emerald-600 animate-bounce">
+                                <i className="fa-solid fa-phone text-2xl"></i>
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="flex justify-center gap-6 items-center">
+                            <button className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-all active:scale-95">
+                                <i className="fa-solid fa-microphone-slash"></i>
+                            </button>
+
+                            {callStatus === 'Listening...' && (
+                                <button 
+                                    onClick={handleStopListening}
+                                    className="w-14 h-14 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-indigo-500 border-2 border-indigo-400/30 transition-all active:scale-95 z-50"
+                                >
+                                    <i className="fa-solid fa-check text-xl"></i>
+                                </button>
+                            )}
+
+                            <button onClick={endCall} className="w-16 h-16 bg-rose-600 text-white rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(225,29,72,0.5)] active:scale-90 transition-all hover:bg-rose-700">
+                                <i className="fa-solid fa-phone-slash text-2xl"></i>
+                            </button>
+                             <button className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-all active:scale-95">
+                                <i className="fa-solid fa-video"></i>
+                            </button>
+                        </div>
+                    )}
+                    
+                    {!isCalling && (
+                        <button onClick={() => setUserTab('home')} className="absolute top-4 left-4 w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors">
+                            <i className="fa-solid fa-arrow-left"></i>
+                        </button>
+                    )}
+                </div>
+             </div>
+        )}
+
+        {/* VOICE SETTINGS INTERFACE */}
+        {userTab === 'voiceSettings' && (
+             <div className="absolute inset-0 z-[100] flex flex-col bg-[#1a1a1a] text-white p-6 animate-in slide-in-from-bottom duration-300 overflow-hidden rounded-[2.5rem]">
+                <div className="flex items-center gap-4 mb-6">
+                    <button onClick={() => setUserTab('home')} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
+                        <i className="fa-solid fa-arrow-left"></i>
+                    </button>
+                    <h2 className="text-lg font-black uppercase tracking-widest">Cài đặt</h2>
+                </div>
+
+                <div className="space-y-6 overflow-y-auto custom-scrollbar flex-1 pb-10">
+                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Chọn giọng trình duyệt</label>
+                        <select 
+                            className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-xs outline-none focus:border-emerald-500/50 transition-colors"
+                            value={voiceSettings.voiceURI}
+                            onChange={(e) => setVoiceSettings(prev => ({ ...prev, voiceURI: e.target.value }))}
+                        >
+                            {availableVoices.map((v, index) => (
+                                <option key={`${v.voiceURI}-${index}`} value={v.voiceURI} className="text-black">
+                                    {v.name} ({v.lang})
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                        <div className="flex justify-between">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cao độ (Pitch)</label>
+                            <span className="text-[10px] font-mono text-emerald-400">{voiceSettings.pitch}</span>
+                        </div>
+                        <input 
+                            type="range" min="0.5" max="2" step="0.1"
+                            value={voiceSettings.pitch}
+                            onChange={(e) => setVoiceSettings(prev => ({ ...prev, pitch: parseFloat(e.target.value) }))}
+                            className="w-full accent-emerald-500"
+                        />
+                    </div>
+
+                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                        <div className="flex justify-between">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tốc độ (Rate)</label>
+                            <span className="text-[10px] font-mono text-emerald-400">{voiceSettings.rate}</span>
+                        </div>
+                        <input 
+                            type="range" min="0.5" max="2" step="0.1"
+                            value={voiceSettings.rate}
+                            onChange={(e) => setVoiceSettings(prev => ({ ...prev, rate: parseFloat(e.target.value) }))}
+                            className="w-full accent-emerald-500"
+                        />
+                    </div>
+
+                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                        <div className="flex justify-between">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Độ phóng to Video</label>
+                            <span className="text-[10px] font-mono text-emerald-400">{Math.round((voiceSettings.videoScale || 1.5) * 100)}%</span>
+                        </div>
+                        <input 
+                            type="range" min="1" max="3" step="0.1"
+                            value={voiceSettings.videoScale || 1.5}
+                            onChange={(e) => setVoiceSettings(prev => ({ ...prev, videoScale: parseFloat(e.target.value) }))}
+                            className="w-full accent-emerald-500"
+                        />
+                    </div>
+
+                    <button 
+                        onClick={testVoice}
+                        className="w-full py-3 bg-white/10 hover:bg-white/20 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
+                    >
+                        <i className="fa-solid fa-play"></i> Nghe thử giọng
+                    </button>
+
+                    <div className="space-y-4 mt-6 pt-6 border-t border-white/10">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Video Nền Cuộc Gọi (YouTube)</label>
+                        
+                        <div className="flex gap-2">
+                            <input 
+                                type="text"
+                                value={newYoutubeLink}
+                                onChange={(e) => setNewYoutubeLink(e.target.value)}
+                                placeholder="Nhập link YouTube (VD: https://youtu.be/...)"
+                                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs outline-none focus:border-emerald-500/50 transition-colors"
+                            />
+                            <button 
+                                onClick={() => {
+                                    if (newYoutubeLink.trim() && !voiceSettings.youtubeLinks?.includes(newYoutubeLink.trim())) {
+                                        setVoiceSettings(prev => ({
+                                            ...prev,
+                                            youtubeLinks: [...(prev.youtubeLinks || []), newYoutubeLink.trim()],
+                                            selectedYoutubeLink: newYoutubeLink.trim()
+                                        }));
+                                        setNewYoutubeLink('');
+                                    }
+                                }}
+                                className="w-10 h-10 bg-emerald-500/20 text-emerald-400 rounded-xl flex items-center justify-center hover:bg-emerald-500/30 transition-colors"
+                            >
+                                <i className="fa-solid fa-plus"></i>
+                            </button>
+                        </div>
+
+                        <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
+                            {(voiceSettings.youtubeLinks || []).map((link: string, idx: number) => (
+                                <div 
+                                    key={idx} 
+                                    className={`flex items-center justify-between p-2 rounded-xl border transition-colors ${
+                                        voiceSettings.selectedYoutubeLink === link 
+                                        ? 'bg-emerald-500/20 border-emerald-500/50' 
+                                        : 'bg-white/5 border-white/10 hover:bg-white/10 cursor-pointer'
+                                    }`}
+                                    onClick={() => setVoiceSettings(prev => ({ ...prev, selectedYoutubeLink: link }))}
+                                >
+                                    <div className="flex items-center gap-2 overflow-hidden">
+                                        <i className={`fa-brands fa-youtube text-lg ${voiceSettings.selectedYoutubeLink === link ? 'text-emerald-400' : 'text-slate-400'}`}></i>
+                                        <span className={`text-xs truncate ${voiceSettings.selectedYoutubeLink === link ? 'text-emerald-400' : 'text-slate-300'}`}>
+                                            {link}
+                                        </span>
+                                    </div>
+                                    <button 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setVoiceSettings(prev => {
+                                                const newLinks = (prev.youtubeLinks || []).filter(l => l !== link);
+                                                return {
+                                                    ...prev,
+                                                    youtubeLinks: newLinks,
+                                                    selectedYoutubeLink: prev.selectedYoutubeLink === link ? (newLinks[0] || '') : prev.selectedYoutubeLink
+                                                };
+                                            });
+                                        }}
+                                        className="w-6 h-6 rounded-full flex items-center justify-center text-rose-400 hover:bg-rose-500/20 transition-colors shrink-0"
+                                    >
+                                        <i className="fa-solid fa-trash text-[10px]"></i>
+                                    </button>
+                                </div>
+                            ))}
+                            {(!voiceSettings.youtubeLinks || voiceSettings.youtubeLinks.length === 0) && (
+                                <div className="text-center py-4 text-slate-500 italic text-[10px]">
+                                    Chưa có video nền nào.
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+             </div>
+        )}
+
         {/* HEADER FOR APPS */}
-        {userTab !== 'home' && (
+        {userTab !== 'home' && userTab !== 'userCall' && userTab !== 'voiceSettings' && (
             <div className="h-14 px-5 flex items-center gap-4 shrink-0 border-b border-white/5 bg-[#0F0F1A]/90 backdrop-blur-xl z-30 shadow-sm">
                 <button onClick={() => {
                     if (userTab === 'contactDetail') setUserTab('contacts');

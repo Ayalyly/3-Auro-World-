@@ -76,6 +76,16 @@ export default function App() {
   const [isAppInitializing, setIsAppInitializing] = useState(true);
   const [shopItems, setShopItems] = useState<InventoryItem[]>([]);
   const [notification, setNotification] = useState<{ title: string; message: string; type?: 'info' | 'warning' | 'success' | 'error' } | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const handleStopGeneration = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsGenerating(false);
+  };
 
   // Fix for users stuck on 'user_phone' view after update
   useEffect(() => {
@@ -671,6 +681,10 @@ export default function App() {
 
     const aiMsgId = 'ai-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
     
+    setIsGenerating(true);
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
     try {
       // Add initial AI message with thinking state
       setMessages((prev) => [
@@ -698,6 +712,9 @@ export default function App() {
       );
 
       for await (const chunk of stream) {
+        if (abortController.signal.aborted) {
+            break;
+        }
         fullText += chunk;
         setMessages((prev) => 
           prev.map((m) => 
@@ -714,6 +731,7 @@ export default function App() {
       }
 
       // --- POST-STREAM PROCESSING ---
+      if (!abortController.signal.aborted) {
       
       // 1. Parse Tags
       const aiTransferMatch = fullText.match(/\[(?:CHUYỂN_KHOẢN|CK|TRANSFER|SEND):\s*(\d+)\]/i);
@@ -864,6 +882,18 @@ export default function App() {
       setUser(finalUser);
       setCharacter(finalChar);
       syncToFirebase(finalChar, finalUser, [...messages, userMsg, { id: aiMsgId, sender: Sender.AI, text: cleanText, timestamp: Date.now(), branchId: currentBranchId }]);
+      } else {
+          setMessages((prev) => 
+            prev.map((m) => 
+              m.id === aiMsgId 
+                ? { 
+                    ...m, 
+                    isThinking: false,
+                  } 
+                : m
+            )
+          );
+      }
 
     } catch (error: any) {
       console.error("Chat Error:", error);
@@ -878,6 +908,11 @@ export default function App() {
           branchId: currentBranchId
         }
       ]);
+    } finally {
+        if (abortControllerRef.current === abortController) {
+            setIsGenerating(false);
+            abortControllerRef.current = null;
+        }
     }
   };
 
@@ -1493,6 +1528,8 @@ export default function App() {
           onHome={() => setView('home')}
           onDashboard={() => setView('saves')}
           lastAffectionChange={lastAffectionChange}
+          isGenerating={isGenerating}
+          onStop={handleStopGeneration}
         />
       );
     }

@@ -130,7 +130,7 @@ export default function ModelSelector({
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col flex-1 min-h-0 h-full">
         {/* Tabs */}
         <div className="flex border-b border-slate-100">
           <button 
@@ -154,7 +154,7 @@ export default function ModelSelector({
         </div>
 
         {/* Content */}
-        <div className="p-4 overflow-y-auto custom-scrollbar flex-1">
+        <div className="p-4 overflow-y-auto custom-scrollbar flex-1 min-h-0">
           <AnimatePresence mode="wait">
             {activeTab === 'gemini' && (
               <motion.div 

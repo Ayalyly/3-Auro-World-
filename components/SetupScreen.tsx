@@ -66,6 +66,7 @@ export default function SetupScreen({
   const [charAppearance, setCharAppearance] = useState('');
   const [charAvatar, setCharAvatar] = useState(`https://api.dicebear.com/7.x/notionists/svg?seed=${Math.random()}`);
   const [initialAffinity, setInitialAffinity] = useState(10);
+  const [youtubeLink, setYoutubeLink] = useState('');
   const [worldContext, setWorldContext] = useState('');
   const [userName, setUserName] = useState('User');
   const [userDesc, setUserDesc] = useState('Người du hành bí ẩn.');
@@ -103,6 +104,7 @@ export default function SetupScreen({
         if (parsed.charAppearance) setCharAppearance(parsed.charAppearance);
         if (parsed.charAvatar) setCharAvatar(parsed.charAvatar);
         if (parsed.initialAffinity) setInitialAffinity(parsed.initialAffinity);
+        if (parsed.youtubeLink) setYoutubeLink(parsed.youtubeLink);
         if (parsed.worldContext) setWorldContext(parsed.worldContext);
         if (parsed.userName) setUserName(parsed.userName);
         if (parsed.userDesc) setUserDesc(parsed.userDesc);
@@ -128,7 +130,7 @@ export default function SetupScreen({
         charDesc: charDesc === 'LOCKED' ? 'LOCKED' : charDesc, 
         charAppearance, 
         charAvatar,
-        initialAffinity, worldContext, userName, userDesc, userAvatar, userAppearance, worldModel,
+        initialAffinity, youtubeLink, worldContext, userName, userDesc, userAvatar, userAppearance, worldModel,
         timestamp: Date.now()
     };
     localStorage.setItem('auro_setup_draft', JSON.stringify(draftData));
@@ -141,7 +143,7 @@ export default function SetupScreen({
         if (charName.trim() || charDesc.trim() || userName.trim()) {
             const draftData = {
                 charName, charOpening, charPrompt, charDesc, charAppearance, charAvatar,
-                initialAffinity, worldContext, userName, userDesc, userAvatar, userAppearance, worldModel,
+                initialAffinity, youtubeLink, worldContext, userName, userDesc, userAvatar, userAppearance, worldModel,
                 timestamp: Date.now()
             };
             localStorage.setItem('auro_setup_draft', JSON.stringify(draftData));
@@ -149,7 +151,7 @@ export default function SetupScreen({
         }
     }, 30000);
     return () => clearInterval(timer);
-  }, [charName, charDesc, charOpening, charAppearance, charAvatar, charPrompt, userName, userDesc, userAppearance, userAvatar, initialAffinity, worldContext, worldModel]);
+  }, [charName, charDesc, charOpening, charAppearance, charAvatar, charPrompt, userName, userDesc, userAppearance, userAvatar, initialAffinity, youtubeLink, worldContext, worldModel]);
 
   useEffect(() => {
       let interval: any;
@@ -179,6 +181,9 @@ export default function SetupScreen({
 
               if (c.appearance !== 'LOCKED') setCharAppearance(c.appearance || '');
               else setCharAppearance('LOCKED');
+
+              if (c.initialAffinity !== undefined) setInitialAffinity(c.initialAffinity);
+              if (c.youtubeLink) setYoutubeLink(c.youtubeLink);
 
               if (c.prompt && c.prompt !== 'LOCKED') setCharPrompt(c.prompt);
               else if (c.prompt === 'LOCKED') setCharPrompt('LOCKED');
@@ -333,6 +338,8 @@ export default function SetupScreen({
           appearance: charAppearance,
           openingMessage: charOpening.replace(/{{user}}/g, userName).replace(/{{char}}/g, charName),
           relationshipScore: initialAffinity,
+          initialAffinity: initialAffinity,
+          youtubeLink: youtubeLink,
           status: initialAffinity >= 80 ? 'Tri kỷ' : initialAffinity >= 40 ? 'Thân thiết' : initialAffinity >= 0 ? 'Người quen' : initialAffinity >= -40 ? 'Căng thẳng' : 'Kẻ thù',
           hearts: Math.max(1, Math.floor((initialAffinity + 100) / 40)),
           // Keep relations and world from imported char
@@ -429,6 +436,8 @@ export default function SetupScreen({
             prompt: getFinalValue(charPrompt, importedChar?.prompt),
             openingMessage: getFinalValue(charOpening, importedChar?.openingMessage).replace(/{{user}}/g, userName).replace(/{{char}}/g, charName), 
             relationshipScore: initialAffinity, 
+            initialAffinity: initialAffinity,
+            youtubeLink: youtubeLink,
             maxScore: 100, 
             status: initialAffinity >= 80 ? 'Tri kỷ' : initialAffinity >= 40 ? 'Thân thiết' : initialAffinity >= 0 ? 'Người quen' : initialAffinity >= -40 ? 'Căng thẳng' : 'Kẻ thù', 
             hearts: Math.max(1, Math.floor((initialAffinity + 100) / 40)), 
@@ -691,6 +700,19 @@ export default function SetupScreen({
                             <span className="text-[7px] font-bold text-emerald-400 uppercase">Tri kỷ (100)</span>
                         </div>
                         <p className="text-[8px] text-slate-400 mt-2 italic px-1">* Thiết lập này sẽ định hình thái độ ban đầu của nhân vật đối với bạn.</p>
+                    </div>
+
+                    <div className="group">
+                        <div className="flex justify-between items-center mb-1.5 px-1">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">LINK YOUTUBE (THEME SONG)</label>
+                        </div>
+                        <input 
+                            className="w-full p-5 bg-slate-50 border-2 border-transparent rounded-[1.5rem] focus:bg-white focus:border-indigo-100 outline-none text-xs text-slate-700 font-medium shadow-sm transition-all" 
+                            value={youtubeLink} 
+                            onChange={e => setYoutubeLink(e.target.value)} 
+                            placeholder="https://www.youtube.com/watch?v=..." 
+                        />
+                        <p className="text-[8px] text-slate-400 mt-2 italic px-1">* Link này sẽ được dùng làm nhạc nền/video nền khi gọi điện cho nhân vật.</p>
                     </div>
 
                     <div className="group">

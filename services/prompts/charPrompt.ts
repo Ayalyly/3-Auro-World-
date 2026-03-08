@@ -7,7 +7,7 @@ export const getCharSystemPrompt = (
   customSystemPrompt?: string,
   settings?: any,
   history?: any[],
-  image?: string,
+  images?: string[],
   userMsg?: string
 ): string => {
   const writingStyle =

@@ -548,7 +548,7 @@ export default function App() {
         lastUserMsg.text, // Re-use the last user prompt
         user,
         settings,
-        lastUserMsg.image
+        lastUserMsg.images || (lastUserMsg.image ? [lastUserMsg.image] : undefined)
       );
 
       // Remove thinking bubble
@@ -615,7 +615,7 @@ export default function App() {
   // ================================================================
   // SEND MESSAGE
   // ================================================================
-  const handleSendMessage = async (text: string, image?: string) => {
+  const handleSendMessage = async (text: string, images?: string[]) => {
     if (!character) return;
     if (isApiKeyMissing) {
       setShowSettingsModal(true);
@@ -671,7 +671,8 @@ export default function App() {
       id: Date.now().toString() + Math.random().toString(),
       sender: Sender.USER,
       text: processedText,
-      image,
+      image: images?.[0], // Keep first image for backward compatibility
+      images: images,
       timestamp: Date.now(),
       branchId: currentBranchId,
       versions: [{ text: processedText, timestamp: Date.now() }],
@@ -708,7 +709,8 @@ export default function App() {
         processedText,
         user,
         settings,
-        image
+        images,
+        abortController.signal
       );
 
       for await (const chunk of stream) {

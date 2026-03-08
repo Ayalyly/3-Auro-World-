@@ -22,7 +22,7 @@ interface MainChatViewProps {
   setView: (view: AppView) => void;
   setCurrentBranchId: (id: string) => void;
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
-  onSendMessage: (text: string, image?: string) => void;
+  onSendMessage: (text: string, images?: string[]) => void | Promise<void>;
   onRegenerate: (id: string) => void;
   onVersionChange: (id: string, direction: 'prev' | 'next') => void;
   onFork: (id: string) => void;
@@ -76,8 +76,8 @@ const MainChatView: React.FC<MainChatViewProps> = ({
   }, [displayedMessages]);
 
   // New handler for sending messages that also checks for product proposals
-  const handleSendMessage = async (text: string, image?: string) => {
-    onSendMessage(text, image);
+  const handleSendMessage = async (text: string, images?: string[]) => {
+    onSendMessage(text, images);
     setProductProposal(null); // Clear old proposals
     setIsProcessingProposal(true);
     try {

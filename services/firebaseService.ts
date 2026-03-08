@@ -49,7 +49,8 @@ const DEFAULT_WORLD_CONTEXT = {
   shopItems: []
 };
 
-const CHUNK_SIZE = 200;
+const CHUNK_SIZE = 20;
+const MAX_IMAGE_SIZE_FOR_STORAGE = 150000; // 150KB threshold for compression in storage
 
 export class FirebaseService {
   private app: FirebaseApp | undefined;
@@ -1074,11 +1075,26 @@ export class FirebaseService {
     const recentMsgs = messages.slice(-500);
     return await Promise.all(
       recentMsgs.map(async (msg) => {
+        // Handle legacy single image
         let newImage = msg.image;
-        if (newImage && typeof newImage === "string" && newImage.length > 200000) {
-          newImage = await this.compressBase64(newImage, 600, 0.7);
+        if (newImage && typeof newImage === "string" && newImage.length > MAX_IMAGE_SIZE_FOR_STORAGE) {
+          newImage = await this.compressBase64(newImage, 600, 0.6);
         }
-        return { ...msg, image: newImage };
+
+        // Handle multiple images
+        let newImages = msg.images;
+        if (newImages && Array.isArray(newImages)) {
+          newImages = await Promise.all(
+            newImages.map(async (img) => {
+              if (img && typeof img === "string" && img.length > MAX_IMAGE_SIZE_FOR_STORAGE) {
+                return await this.compressBase64(img, 600, 0.6);
+              }
+              return img;
+            })
+          );
+        }
+
+        return { ...msg, image: newImage, images: newImages };
       })
     );
   }

@@ -443,7 +443,7 @@ export class GeminiService {
     userMsg: string,
     user: UserProfile,
     settings: AppSettings,
-    image?: string
+    images?: string[]
   ) {
     const activeSystem =
       settings.systemPrompts?.find((p) => p.isActive)?.content || "";
@@ -459,16 +459,16 @@ export class GeminiService {
       activeSystem,
       settings,
       history,
-      image,
+      images,
       userMsg
     );
 
     if (this.isProxyModel(settings.model)) {
-        return proxyService.sendMessage(character, history, userMsg, user, settings, image, systemPrompt);
+        return proxyService.sendMessage(character, history, userMsg, user, settings, images?.[0], systemPrompt);
     }
 
     if (this.isGroqModel(settings.model)) {
-      return groqService.sendMessage(character, history, userMsg, user, settings, image, systemPrompt);
+      return groqService.sendMessage(character, history, userMsg, user, settings, images?.[0], systemPrompt);
     }
 
     const intensity = settings.emotionalIntensity || 50;
@@ -478,21 +478,34 @@ export class GeminiService {
     // INCREASED CONTEXT WINDOW FROM 15 TO 60 MESSAGES
     const chatParts: any[] = history
       .slice(-60)
-      .map((m) => ({
-        role: m.sender === Sender.USER ? "user" : "model",
-        parts: [{ text: m.text }]
-      }));
+      .map((m) => {
+        const parts: any[] = [{ text: m.text }];
+        if (m.images && m.images.length > 0) {
+          m.images.forEach(imgRaw => {
+            const img = this.parseImageData(imgRaw);
+            parts.unshift({ inlineData: { data: img.data, mimeType: img.mimeType } });
+          });
+        } else if (m.image) {
+          const img = this.parseImageData(m.image);
+          parts.unshift({ inlineData: { data: img.data, mimeType: img.mimeType } });
+        }
+        return {
+          role: m.sender === Sender.USER ? "user" : "model",
+          parts
+        };
+      });
 
     const finalUserMsg = activePrefix ? `(${activePrefix}) ${userMsg}` : userMsg;
 
-    if (image) {
-      const img = this.parseImageData(image);
+    if (images && images.length > 0) {
+      const parts: any[] = images.map(imgRaw => {
+        const img = this.parseImageData(imgRaw);
+        return { inlineData: { data: img.data, mimeType: img.mimeType } };
+      });
+      parts.push({ text: finalUserMsg });
       chatParts.push({
         role: "user",
-        parts: [
-          { inlineData: { data: img.data, mimeType: img.mimeType } },
-          { text: finalUserMsg }
-        ]
+        parts
       });
     } else {
       chatParts.push({ role: "user", parts: [{ text: finalUserMsg }] });
@@ -552,7 +565,7 @@ export class GeminiService {
     userMsg: string,
     user: UserProfile,
     settings: AppSettings,
-    image?: string,
+    images?: string[],
     signal?: AbortSignal
   ): AsyncGenerator<string> {
     const activeSystem = settings.systemPrompts?.find((p) => p.isActive)?.content || "";
@@ -567,12 +580,12 @@ export class GeminiService {
       activeSystem,
       settings,
       history,
-      image,
+      images,
       userMsg
     );
 
     if (this.isProxyModel(settings.model)) {
-        const stream = proxyService.sendMessageStream(character, history, userMsg, user, settings, image, systemPrompt);
+        const stream = proxyService.sendMessageStream(character, history, userMsg, user, settings, images?.[0], systemPrompt);
         for await (const chunk of stream) {
             if (signal?.aborted) break;
             yield chunk;
@@ -581,7 +594,7 @@ export class GeminiService {
     }
 
     if (this.isGroqModel(settings.model)) {
-      const stream = groqService.sendMessageStream(character, history, userMsg, user, settings, image, systemPrompt);
+      const stream = groqService.sendMessageStream(character, history, userMsg, user, settings, images?.[0], systemPrompt);
       for await (const chunk of stream) {
         if (signal?.aborted) break;
         yield chunk;
@@ -594,21 +607,34 @@ export class GeminiService {
 
     const chatParts: any[] = history
       .slice(-60)
-      .map((m) => ({
-        role: m.sender === Sender.USER ? "user" : "model",
-        parts: [{ text: m.text }]
-      }));
+      .map((m) => {
+        const parts: any[] = [{ text: m.text }];
+        if (m.images && m.images.length > 0) {
+          m.images.forEach(imgRaw => {
+            const img = this.parseImageData(imgRaw);
+            parts.unshift({ inlineData: { data: img.data, mimeType: img.mimeType } });
+          });
+        } else if (m.image) {
+          const img = this.parseImageData(m.image);
+          parts.unshift({ inlineData: { data: img.data, mimeType: img.mimeType } });
+        }
+        return {
+          role: m.sender === Sender.USER ? "user" : "model",
+          parts
+        };
+      });
 
     const finalUserMsg = activePrefix ? `(${activePrefix}) ${userMsg}` : userMsg;
 
-    if (image) {
-      const img = this.parseImageData(image);
+    if (images && images.length > 0) {
+      const parts: any[] = images.map(imgRaw => {
+        const img = this.parseImageData(imgRaw);
+        return { inlineData: { data: img.data, mimeType: img.mimeType } };
+      });
+      parts.push({ text: finalUserMsg });
       chatParts.push({
         role: "user",
-        parts: [
-          { inlineData: { data: img.data, mimeType: img.mimeType } },
-          { text: finalUserMsg }
-        ]
+        parts
       });
     } else {
       chatParts.push({ role: "user", parts: [{ text: finalUserMsg }] });

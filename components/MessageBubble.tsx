@@ -267,9 +267,31 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, character, userA
                   color: isAi ? (theme.textColor || '#334155') : 'inherit' // User bubble usually has its own contrast
                 }}
               >
-                {message.image && message.image !== "GENERATING" && (
+                {/* Single Image (Legacy) */}
+                {message.image && !message.images && message.image !== "GENERATING" && (
                   <img src={message.image} className="rounded-lg mb-2 max-w-full h-auto border border-white/20" alt="attachment" />
                 )}
+
+                {/* Multiple Images */}
+                {message.images && message.images.length > 0 && (
+                  <div className={`grid gap-1 mb-2 ${
+                    message.images.length === 1 ? 'grid-cols-1' : 
+                    message.images.length === 2 ? 'grid-cols-2' : 
+                    message.images.length === 3 ? 'grid-cols-2' : 
+                    'grid-cols-2'
+                  }`}>
+                    {message.images.map((img, idx) => (
+                      <div key={idx} className={`${message.images!.length === 3 && idx === 0 ? 'col-span-2' : ''}`}>
+                        <img 
+                          src={img} 
+                          className="rounded-lg w-full h-auto object-cover border border-white/20 shadow-sm max-h-[300px]" 
+                          alt={`attachment-${idx}`} 
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 {message.image === "GENERATING" && (
                   <div className="w-40 h-40 bg-slate-50 animate-pulse rounded-lg flex items-center justify-center mb-2 border border-dashed border-slate-200"><i className="fa-solid fa-paintbrush text-slate-300"></i></div>
                 )}

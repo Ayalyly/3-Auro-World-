@@ -93,7 +93,8 @@ export interface Message {
   sender: Sender;
   text: string;
   timestamp: number;
-  image?: string;
+  image?: string; // Keep for backward compatibility
+  images?: string[]; // Support multiple images
   isThinking?: boolean;
   isEdited?: boolean;
   versions?: { text: string; timestamp: number }[];

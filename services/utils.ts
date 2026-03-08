@@ -31,7 +31,7 @@ export const parseSystemTag = (text: string) => {
 
 export const compressBase64 = async (base64: string, maxWidth = 1200, quality = 0.9): Promise<string> => {
     if (!base64 || typeof base64 !== "string" || !base64.startsWith("data:image")) return base64;
-    if (base64.length < 500 * 1024) return base64;
+    if (base64.length < 100 * 1024) return base64;
 
     return new Promise((resolve) => {
       const img = new Image();

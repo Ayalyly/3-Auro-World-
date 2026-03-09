@@ -70,6 +70,17 @@ const PRESET_SERVERS: Record<string, {name: string, config: FirebaseConfig}> = {
             messagingSenderId: "676346190015",
             appId: "1:676346190015:web:b529c9eb6d219a89c7ce0a"
         }
+    },
+    "server6": {
+        name: "Auro Leo",
+        config: {
+            apiKey: "AIzaSyBxIHLsoePeKNYd_2xC9FNXivRLN7B_lwQ",
+            authDomain: "auroleo-e5868.firebaseapp.com",
+            projectId: "auroleo-e5868",
+            storageBucket: "auroleo-e5868.firebasestorage.app",
+            messagingSenderId: "295564825495",
+            appId: "1:295564825495:web:1f898450a47747a46aaad2"
+        }
     }
 };
 

@@ -200,14 +200,36 @@ export class GeminiService {
   }
 
   private isProxyModel(modelName: string): boolean {
-    if (!modelName) return false;
-    return this.proxyConfig?.modelName === modelName;
+    if (!modelName || !this.proxyConfig?.isActive) return false;
+    
+    // 1. Nếu khớp chính xác tên model proxy đã cấu hình
+    if (this.proxyConfig.modelName === modelName) return true;
+    
+    // 2. Nếu KHÔNG PHẢI model Gemini và có Proxy Key
+    const isGemini = modelName.startsWith('gemini-') || modelName.startsWith('auto-') || modelName.startsWith('veo-');
+    if (!isGemini && this.proxyConfig.apiKey) {
+        // Nếu không có key Groq, hoặc model không giống Groq (llama, mixtral...)
+        if (this.groqApiKeys.length === 0) return true;
+        
+        const groqPatterns = ['llama', 'mixtral', 'gemma', 'distil'];
+        const isKnownGroq = groqPatterns.some(p => modelName.toLowerCase().includes(p));
+        if (!isKnownGroq) return true;
+    }
+    
+    return false;
   }
 
   private isGroqModel(modelName: string): boolean {
     if (!modelName) return false;
+    
+    // Nếu đã được xử lý bởi Proxy thì không phải Groq (để tránh xung đột routing)
     if (this.isProxyModel(modelName)) return false;
-    return !modelName.startsWith('gemini-') && !modelName.startsWith('veo-') && !modelName.startsWith('auto-');
+    
+    const isGemini = modelName.startsWith('gemini-') || modelName.startsWith('auto-') || modelName.startsWith('veo-');
+    if (isGemini) return false;
+
+    // Chỉ coi là Groq nếu có Key Groq
+    return this.groqApiKeys.length > 0;
   }
 
   private async generateGroqContent(

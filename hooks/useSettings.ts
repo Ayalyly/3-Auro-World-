@@ -3,7 +3,7 @@ import { AppSettings, PromptPreset, ApiProviderConfig } from '../types';
 
 const DEFAULT_SETTINGS: AppSettings = {
   language: 'vi',
-  model: 'gemini-3-flash-preview',
+  model: 'gemini-3.1-flash-lite-preview',
   speed: 1,
   responseLength: 'balanced',
   emotionalIntensity: 50,
@@ -21,7 +21,7 @@ const DEFAULT_SETTINGS: AppSettings = {
     {
       provider: 'gemini',
       keys: [{ value: '', isActive: true }],
-      activeModel: 'gemini-3-flash-preview',
+      activeModel: 'gemini-3.1-flash-lite-preview',
       isEnabled: true
     }
   ],

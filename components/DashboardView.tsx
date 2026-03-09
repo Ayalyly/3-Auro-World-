@@ -181,7 +181,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
       newConfigs.push({ 
         provider: 'gemini', 
         keys: [], 
-        activeModel: 'gemini-3-flash-preview', 
+        activeModel: 'gemini-3.1-flash-lite-preview', 
         isEnabled: true 
       });
       gIndex = newConfigs.length - 1;

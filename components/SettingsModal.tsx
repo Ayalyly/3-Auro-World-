@@ -33,7 +33,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     setIsTesting(true);
     setTestResult(null);
     try {
-      const result = await onTestModel(localSettings.model || 'gemini-3-flash-preview');
+      const result = await onTestModel(localSettings.model || 'gemini-3.1-flash-lite-preview');
       setTestResult(result);
     } catch (e) {
       setTestResult({ success: false, latency: 0, message: "Lỗi không xác định." });
@@ -217,7 +217,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                 >
                   <div className="flex items-center gap-2">
                     <i className="fa-solid fa-microchip text-indigo-500"></i>
-                    <span>{localSettings.model || 'gemini-3-flash-preview'}</span>
+                    <span>{localSettings.model || 'gemini-3.1-flash-lite-preview'}</span>
                   </div>
                   <i className="fa-solid fa-chevron-right text-slate-400"></i>
                 </div>

@@ -267,8 +267,8 @@ export class GeminiService {
   ): Promise<any> {
     let actualModelName = modelName || DEFAULT_MODEL; 
     
-    if (actualModelName === "auto-fast") actualModelName = "gemini-3.1-flash-lite-preview";
-    else if (actualModelName === "auto-pro") actualModelName = "gemini-3.1-pro-preview";
+    if (actualModelName === "auto-fast" || actualModelName === "gemini-3-flash-preview") actualModelName = "gemini-3.1-flash-lite-preview";
+    else if (actualModelName === "auto-pro" || actualModelName === "gemini-3-pro-preview") actualModelName = "gemini-3.1-pro-preview";
 
     if (this.isProxyModel(actualModelName)) {
         // Convert contents to string if it's complex, as proxyService.generateContent expects string prompt currently
@@ -352,8 +352,8 @@ export class GeminiService {
     signal?: AbortSignal
   ): AsyncGenerator<string> {
     let actualModelName = modelName || DEFAULT_MODEL;
-    if (actualModelName === "auto-fast") actualModelName = "gemini-3.1-flash-lite-preview";
-    else if (actualModelName === "auto-pro") actualModelName = "gemini-3.1-pro-preview";
+    if (actualModelName === "auto-fast" || actualModelName === "gemini-3-flash-preview") actualModelName = "gemini-3.1-flash-lite-preview";
+    else if (actualModelName === "auto-pro" || actualModelName === "gemini-3-pro-preview") actualModelName = "gemini-3.1-pro-preview";
 
     if (this.isGroqModel(actualModelName)) {
       const stream = this.generateGroqContentStream(actualModelName, contents, systemInstruction, maxTokens, temperature);

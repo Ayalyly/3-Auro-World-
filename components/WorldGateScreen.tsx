@@ -59,6 +59,17 @@ const PRESET_SERVERS: Record<string, {name: string, config: FirebaseConfig}> = {
             messagingSenderId: "982047260647",
             appId: "1:982047260647:web:67cd30cd58f0ff1bb30742"
         }
+    },
+    "server5": {
+        name: "Auro AI 5",
+        config: {
+            apiKey: "AIzaSyDoQuI_Lsu1swcdbHuzPUu5NYlvkWbxz9M",
+            authDomain: "auro-vicgo.firebaseapp.com",
+            projectId: "auro-vicgo",
+            storageBucket: "auro-vicgo.firebasestorage.app",
+            messagingSenderId: "676346190015",
+            appId: "1:676346190015:web:b529c9eb6d219a89c7ce0a"
+        }
     }
 };
 

@@ -94,11 +94,13 @@ const RealisticPhoneView: React.FC<PhoneViewProps> = ({
         provider: 'gemini',
         youtubeLinks: ['https://www.youtube.com/watch?v=jfKfPfyJRdk'],
         selectedYoutubeLink: 'https://www.youtube.com/watch?v=jfKfPfyJRdk',
-        videoScale: 1.5
+        videoScale: 1.5,
+        youtubeNotes: {} as Record<string, string>
     };
     return saved ? { ...defaultSettings, ...JSON.parse(saved) } : defaultSettings;
   });
   const [newYoutubeLink, setNewYoutubeLink] = useState('');
+  const [newYoutubeNote, setNewYoutubeNote] = useState('');
 
   useEffect(() => {
     localStorage.setItem('auro_voice_settings', JSON.stringify(voiceSettings));
@@ -601,6 +603,7 @@ const RealisticPhoneView: React.FC<PhoneViewProps> = ({
                 setPhoneMode={setPhoneMode}
                 onSendMessageToNPC={onSendMessageToNPC}
                 character={character}
+                onUpdateCharacter={onUpdateCharacter}
                 setNpcTab={setTab}
                 t={t}
              />
@@ -802,29 +805,40 @@ const RealisticPhoneView: React.FC<PhoneViewProps> = ({
                     <div className="space-y-4 mt-6 pt-6 border-t border-white/10">
                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Video Nền Cuộc Gọi (YouTube)</label>
                         
-                        <div className="flex gap-2">
+                        <div className="flex flex-col gap-2">
                             <input 
                                 type="text"
                                 value={newYoutubeLink}
                                 onChange={(e) => setNewYoutubeLink(e.target.value)}
                                 placeholder="Nhập link YouTube (VD: https://youtu.be/...)"
-                                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs outline-none focus:border-emerald-500/50 transition-colors"
+                                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs outline-none focus:border-emerald-500/50 transition-colors"
                             />
-                            <button 
-                                onClick={() => {
-                                    if (newYoutubeLink.trim() && !voiceSettings.youtubeLinks?.includes(newYoutubeLink.trim())) {
-                                        setVoiceSettings(prev => ({
-                                            ...prev,
-                                            youtubeLinks: [...(prev.youtubeLinks || []), newYoutubeLink.trim()],
-                                            selectedYoutubeLink: newYoutubeLink.trim()
-                                        }));
-                                        setNewYoutubeLink('');
-                                    }
-                                }}
-                                className="w-10 h-10 bg-emerald-500/20 text-emerald-400 rounded-xl flex items-center justify-center hover:bg-emerald-500/30 transition-colors"
-                            >
-                                <i className="fa-solid fa-plus"></i>
-                            </button>
+                            <div className="flex gap-2">
+                                <input 
+                                    type="text"
+                                    value={newYoutubeNote}
+                                    onChange={(e) => setNewYoutubeNote(e.target.value)}
+                                    placeholder="Ghi chú (VD: vui, buồn...)"
+                                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs outline-none focus:border-emerald-500/50 transition-colors"
+                                />
+                                <button 
+                                    onClick={() => {
+                                        if (newYoutubeLink.trim() && !voiceSettings.youtubeLinks?.includes(newYoutubeLink.trim())) {
+                                            setVoiceSettings(prev => ({
+                                                ...prev,
+                                                youtubeLinks: [...(prev.youtubeLinks || []), newYoutubeLink.trim()],
+                                                selectedYoutubeLink: newYoutubeLink.trim(),
+                                                youtubeNotes: { ...(prev.youtubeNotes || {}), [newYoutubeLink.trim()]: newYoutubeNote.trim() }
+                                            }));
+                                            setNewYoutubeLink('');
+                                            setNewYoutubeNote('');
+                                        }
+                                    }}
+                                    className="w-10 h-10 bg-emerald-500/20 text-emerald-400 rounded-xl flex items-center justify-center hover:bg-emerald-500/30 transition-colors shrink-0"
+                                >
+                                    <i className="fa-solid fa-plus"></i>
+                                </button>
+                            </div>
                         </div>
 
                         <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
@@ -838,20 +852,28 @@ const RealisticPhoneView: React.FC<PhoneViewProps> = ({
                                     }`}
                                     onClick={() => setVoiceSettings(prev => ({ ...prev, selectedYoutubeLink: link }))}
                                 >
-                                    <div className="flex items-center gap-2 overflow-hidden">
-                                        <i className={`fa-brands fa-youtube text-lg ${voiceSettings.selectedYoutubeLink === link ? 'text-emerald-400' : 'text-slate-400'}`}></i>
-                                        <span className={`text-xs truncate ${voiceSettings.selectedYoutubeLink === link ? 'text-emerald-400' : 'text-slate-300'}`}>
-                                            {link}
-                                        </span>
+                                    <div className="flex items-center gap-2 overflow-hidden flex-1 min-w-0 pr-2">
+                                        <i className={`fa-brands fa-youtube text-lg shrink-0 ${voiceSettings.selectedYoutubeLink === link ? 'text-emerald-400' : 'text-slate-400'}`}></i>
+                                        <div className="flex flex-col flex-1 min-w-0">
+                                            <span className={`text-xs font-bold truncate ${voiceSettings.selectedYoutubeLink === link ? 'text-emerald-400' : 'text-slate-300'}`}>
+                                                {voiceSettings.youtubeNotes?.[link] || 'Video'}
+                                            </span>
+                                            <span className={`text-[10px] truncate opacity-70 ${voiceSettings.selectedYoutubeLink === link ? 'text-emerald-400' : 'text-slate-300'}`}>
+                                                {link}
+                                            </span>
+                                        </div>
                                     </div>
                                     <button 
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             setVoiceSettings(prev => {
                                                 const newLinks = (prev.youtubeLinks || []).filter(l => l !== link);
+                                                const newNotes = { ...prev.youtubeNotes };
+                                                delete newNotes[link];
                                                 return {
                                                     ...prev,
                                                     youtubeLinks: newLinks,
+                                                    youtubeNotes: newNotes,
                                                     selectedYoutubeLink: prev.selectedYoutubeLink === link ? (newLinks[0] || '') : prev.selectedYoutubeLink
                                                 };
                                             });

@@ -69,6 +69,9 @@ export const getCharSystemPrompt = (
     ? "- [BẢO VỆ TRẺ EM]: Tuyệt đối không tạo nội dung 18+, khiêu dâm, bạo lực cực đoan hoặc ngôn từ không phù hợp với lứa tuổi vị thành niên."
     : "- [NHẬP VAI TỰ DO]: Cho phép các nội dung nhập vai trưởng thành, lãng mạn sâu sắc hoặc bạo lực nếu phù hợp với cốt truyện và bối cảnh nhân vật.";
 
+  const targetLang = character.language || (settings?.language === 'en' ? 'English' : 'Tiếng Việt');
+  const languageRule = `- [LANGUAGE]: BẮT BUỘC phản hồi bằng ngôn ngữ: ${targetLang.toUpperCase()}. Tuyệt đối không sử dụng ngôn ngữ khác trừ khi được yêu cầu rõ ràng.`;
+
   const completionRule = `- [HOÀN TẤT CÂU TRẢ LỜI]: BẮT BUỘC phải kết thúc câu trả lời một cách trọn vẹn và tự nhiên trong phạm vi giới hạn độ dài (${maxTokens} tokens). Không được để câu trả lời bị cắt ngang giữa chừng hoặc dở dang.`;
 
   const socialContext = (character.socialPosts || [])
@@ -135,6 +138,7 @@ ${activeSystem ? `[LUẬT CHUNG CỦA THẾ GIỚI / SYSTEM PROMPT (BẮT BUỘC
 - Không OUT OF CHARACTER.
 - Không điều khiển hành động của ${userName}, chỉ mô tả bản thân.
 - Cho phép nhập vai đa thể loại (tiên hiệp, hiện đại, sci-fi,...) tuỳ theo bối cảnh.
+${languageRule}
 ${nsfwRule}
 ${completionRule}
 

@@ -64,6 +64,7 @@ export default function SetupScreen({
   const [charPrompt, setCharPrompt] = useState('');
   const [charDesc, setCharDesc] = useState('');
   const [charAppearance, setCharAppearance] = useState('');
+  const [charLanguage, setCharLanguage] = useState('Tiếng Việt');
   const [charAvatar, setCharAvatar] = useState(`https://api.dicebear.com/7.x/notionists/svg?seed=${Math.random()}`);
   const [initialAffinity, setInitialAffinity] = useState(10);
   const [youtubeLink, setYoutubeLink] = useState('');
@@ -102,6 +103,7 @@ export default function SetupScreen({
         if (parsed.charPrompt) setCharPrompt(parsed.charPrompt);
         if (parsed.charDesc) setCharDesc(parsed.charDesc);
         if (parsed.charAppearance) setCharAppearance(parsed.charAppearance);
+        if (parsed.charLanguage) setCharLanguage(parsed.charLanguage);
         if (parsed.charAvatar) setCharAvatar(parsed.charAvatar);
         if (parsed.initialAffinity) setInitialAffinity(parsed.initialAffinity);
         if (parsed.youtubeLink) setYoutubeLink(parsed.youtubeLink);
@@ -123,35 +125,45 @@ export default function SetupScreen({
   };
 
   const handleSaveDraft = () => {
-    const draftData = {
-        charName, 
-        charOpening: charOpening === 'LOCKED' ? 'LOCKED' : charOpening, 
-        charPrompt, 
-        charDesc: charDesc === 'LOCKED' ? 'LOCKED' : charDesc, 
-        charAppearance, 
-        charAvatar,
-        initialAffinity, youtubeLink, worldContext, userName, userDesc, userAvatar, userAppearance, worldModel,
-        timestamp: Date.now()
-    };
-    localStorage.setItem('auro_setup_draft', JSON.stringify(draftData));
-    onNotification?.({ title: "Thành công", message: "Đã lưu bản nháp thành công!" });
+    try {
+        const draftData = {
+            charName, 
+            charOpening: charOpening === 'LOCKED' ? 'LOCKED' : charOpening, 
+            charPrompt, 
+            charDesc: charDesc === 'LOCKED' ? 'LOCKED' : charDesc, 
+            charAppearance, 
+            charLanguage,
+            charAvatar,
+            initialAffinity, youtubeLink, worldContext, userName, userDesc, userAvatar, userAppearance, worldModel,
+            timestamp: Date.now()
+        };
+        localStorage.setItem('auro_setup_draft', JSON.stringify(draftData));
+        onNotification?.({ title: "Thành công", message: "Đã lưu bản nháp thành công!" });
+    } catch (e) {
+        console.error("Failed to save draft", e);
+        onNotification?.({ title: "Lỗi", message: "Không thể lưu bản nháp. Có thể bộ nhớ trình duyệt đã đầy." });
+    }
   };
 
   // Auto-save draft every 30 seconds
   useEffect(() => {
     const timer = setInterval(() => {
         if (charName.trim() || charDesc.trim() || userName.trim()) {
-            const draftData = {
-                charName, charOpening, charPrompt, charDesc, charAppearance, charAvatar,
-                initialAffinity, youtubeLink, worldContext, userName, userDesc, userAvatar, userAppearance, worldModel,
-                timestamp: Date.now()
-            };
-            localStorage.setItem('auro_setup_draft', JSON.stringify(draftData));
-            console.log("💾 Auto-saved draft");
+            try {
+                const draftData = {
+                    charName, charOpening, charPrompt, charDesc, charAppearance, charLanguage, charAvatar,
+                    initialAffinity, youtubeLink, worldContext, userName, userDesc, userAvatar, userAppearance, worldModel,
+                    timestamp: Date.now()
+                };
+                localStorage.setItem('auro_setup_draft', JSON.stringify(draftData));
+                console.log("💾 Auto-saved draft");
+            } catch (e) {
+                console.error("Failed to auto-save draft", e);
+            }
         }
     }, 30000);
     return () => clearInterval(timer);
-  }, [charName, charDesc, charOpening, charAppearance, charAvatar, charPrompt, userName, userDesc, userAppearance, userAvatar, initialAffinity, youtubeLink, worldContext, worldModel]);
+  }, [charName, charDesc, charOpening, charAppearance, charLanguage, charAvatar, charPrompt, userName, userDesc, userAppearance, userAvatar, initialAffinity, youtubeLink, worldContext, worldModel]);
 
   useEffect(() => {
       let interval: any;
@@ -181,6 +193,8 @@ export default function SetupScreen({
 
               if (c.appearance !== 'LOCKED') setCharAppearance(c.appearance || '');
               else setCharAppearance('LOCKED');
+
+              if (c.language) setCharLanguage(c.language);
 
               if (c.initialAffinity !== undefined) setInitialAffinity(c.initialAffinity);
               if (c.youtubeLink) setYoutubeLink(c.youtubeLink);
@@ -241,6 +255,7 @@ export default function SetupScreen({
                   const charData = json.character || json; 
                   if (charData.name) {
                       setCharName(charData.name); setCharDesc(charData.description || ''); setCharOpening(charData.openingMessage || ''); setCharAvatar(charData.avatar || '');
+                      if (charData.language) setCharLanguage(charData.language);
                       if (json.user) { setUserName(json.user.name || ''); setUserDesc(json.user.description || ''); setUserAvatar(json.user.avatar || ''); }
                   }
               } catch (err) { showAlert("Lỗi", "Lỗi đọc file JSON."); }
@@ -269,12 +284,13 @@ export default function SetupScreen({
   };
 
   const processRawText = async (text: string) => {
-      const data = await geminiRef.current.parseCharacterDocument(text, currentLang);
+      const data = await geminiRef.current.parseCharacterDocument(text, charLanguage);
       if (data && !(data as any).text?.includes('❌')) { 
         setCharName(data.name || ''); 
         setCharDesc(data.description || ''); 
         setCharOpening(data.openingMessage || ''); 
         setCharAppearance(data.appearance || ''); 
+        if (data.language) setCharLanguage(data.language);
       } else {
         showAlert("Lỗi", (data as any)?.text || "Không thể phân tích văn bản. Kiểm tra API Key.");
       }
@@ -336,6 +352,7 @@ export default function SetupScreen({
           description: charDesc,
           prompt: charPrompt || importedChar.prompt,
           appearance: charAppearance,
+          language: charLanguage,
           openingMessage: charOpening.replace(/{{user}}/g, userName).replace(/{{char}}/g, charName),
           relationshipScore: initialAffinity,
           initialAffinity: initialAffinity,
@@ -383,7 +400,7 @@ export default function SetupScreen({
         console.log(`⏳ Bước 1: World Context (${worldModel})...`);
         
         const generatedWorld = await geminiRef.current.generateWorldContext(
-          charName, charDesc, userName, userDesc, worldContext || "Dựa theo cốt truyện", worldModel
+          charName, charDesc, userName, userDesc, worldContext || "Dựa theo cốt truyện", worldModel, charLanguage
         );
         
         if (generatedWorld.error) throw new Error(generatedWorld.error);
@@ -392,7 +409,7 @@ export default function SetupScreen({
         console.log(`⏳ Bước 2: Social & Economy (${worldModel})...`);
         
         const socialEco = await geminiRef.current.generateSocialAndEconomy(
-          charName, userName, generatedWorld, worldModel
+          charName, userName, generatedWorld, worldModel, charLanguage
         );
 
         if (socialEco.error) throw new Error(socialEco.error);
@@ -409,7 +426,7 @@ export default function SetupScreen({
         console.log(`⏳ Bước 3: Legacy Content (${worldModel})...`);
         
         const legacyData = await geminiRef.current.generateLegacyContent(
-          charName, enrichedRelations, generatedWorld, generatedWorld, worldModel
+          charName, enrichedRelations, generatedWorld, generatedWorld, worldModel, charLanguage
         );
         console.log("✅ Legacy Content OK");
 
@@ -435,6 +452,7 @@ export default function SetupScreen({
             name: charName, avatar: charAvatar,
             description: `${getFinalValue(charDesc, importedChar?.description)}\n\n[NGOẠI HÌNH: ${getFinalValue(charAppearance, importedChar?.appearance)}]\n\n[LUẬT: ${generatedWorld.worldRules}]\n\n[BỐI CẢNH: ${generatedWorld.worldDetail}]`,
             prompt: getFinalValue(charPrompt, importedChar?.prompt),
+            language: charLanguage,
             openingMessage: getFinalValue(charOpening, importedChar?.openingMessage).replace(/{{user}}/g, userName).replace(/{{char}}/g, charName), 
             relationshipScore: initialAffinity, 
             initialAffinity: initialAffinity,
@@ -654,6 +672,45 @@ export default function SetupScreen({
                         <input className="w-full p-5 bg-slate-50 border-2 border-transparent rounded-[1.5rem] focus:bg-white focus:border-indigo-100 outline-none text-sm font-black text-slate-800 shadow-sm transition-all" value={charName} onChange={e => setCharName(e.target.value)} placeholder="Tên nhân vật..." />
                     </div>
                     <div className="group">
+                        <div className="flex justify-between items-center mb-1.5 px-1"><label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">NGÔN NGỮ PHẢN HỒI</label></div>
+                        <input 
+                            list="languages"
+                            className="w-full p-5 bg-slate-50 border-2 border-transparent rounded-[1.5rem] focus:bg-white focus:border-indigo-100 outline-none text-sm font-black text-slate-800 shadow-sm transition-all" 
+                            value={charLanguage} 
+                            onChange={e => setCharLanguage(e.target.value)}
+                            placeholder="Nhập hoặc chọn ngôn ngữ..."
+                        />
+                        <datalist id="languages">
+                            <option value="Tiếng Việt" />
+                            <option value="English" />
+                            <option value="日本語 (Japanese)" />
+                            <option value="한국어 (Korean)" />
+                            <option value="中文 (Chinese)" />
+                            <option value="Français (French)" />
+                            <option value="Español (Spanish)" />
+                            <option value="Deutsch (German)" />
+                            <option value="Русский (Russian)" />
+                            <option value="Italiano (Italian)" />
+                            <option value="Português (Portuguese)" />
+                            <option value="العربية (Arabic)" />
+                            <option value="हिन्दी (Hindi)" />
+                            <option value="ภาษาไทย (Thai)" />
+                            <option value="Bahasa Indonesia" />
+                            <option value="Türkçe (Turkish)" />
+                            <option value="Nederlands (Dutch)" />
+                            <option value="Polski (Polish)" />
+                            <option value="Svenska (Swedish)" />
+                            <option value="Dansk (Danish)" />
+                            <option value="Suomi (Finnish)" />
+                            <option value="Norsk (Norwegian)" />
+                            <option value="Čeština (Czech)" />
+                            <option value="Magyar (Hungarian)" />
+                            <option value="Română (Romanian)" />
+                            <option value="Ελληνικά (Greek)" />
+                            <option value="עברית (Hebrew)" />
+                        </datalist>
+                    </div>
+                    <div className="group">
                         <div className="flex justify-between items-center mb-1.5 px-1">
                             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">CỐT TRUYỆN & TÍNH CÁCH</label>
                             <div className="flex gap-1">
@@ -734,11 +791,33 @@ export default function SetupScreen({
                     <div className="group">
                         <div className="flex justify-between items-center mb-1.5 px-1">
                             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">LỜI CHÀO ĐẦU TIÊN</label>
-                            {charOpening === 'LOCKED' && (
-                                <span className="bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded text-[8px] font-bold border border-slate-200 flex items-center gap-1">
-                                    <i className="fa-solid fa-lock text-[7px]"></i> BẢO VỆ
-                                </span>
-                            )}
+                            <div className="flex gap-1 items-center">
+                                {charOpening === 'LOCKED' && (
+                                    <span className="bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded text-[8px] font-bold border border-slate-200 flex items-center gap-1">
+                                        <i className="fa-solid fa-lock text-[7px]"></i> BẢO VỆ
+                                    </span>
+                                )}
+                                <button 
+                                    onClick={async () => {
+                                        if (!charOpening || charOpening === 'LOCKED') return;
+                                        try {
+                                            const translated = await geminiRef.current.translateText(
+                                                charOpening, charLanguage, worldModel
+                                            );
+                                            if (translated) {
+                                                setCharOpening(translated);
+                                            }
+                                        } catch (e) {
+                                            console.error("Translation error:", e);
+                                            showAlert("Lỗi", "Không thể dịch lời chào.");
+                                        }
+                                    }}
+                                    disabled={!charOpening || charOpening === 'LOCKED'}
+                                    className="text-[9px] font-bold text-indigo-500 hover:bg-indigo-50 px-2 py-1 rounded-lg transition-colors flex items-center gap-1 disabled:opacity-50"
+                                >
+                                    <i className="fa-solid fa-language"></i> DỊCH SANG {charLanguage.toUpperCase()}
+                                </button>
+                            </div>
                         </div>
                         <div className="relative group">
                             <textarea 

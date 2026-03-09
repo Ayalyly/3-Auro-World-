@@ -3,9 +3,11 @@ export const getWorldContextPrompt = (
   charDesc: string,
   userName: string,
   userDesc: string,
-  rawSetting: string
+  rawSetting: string,
+  language: string = 'Tiếng Việt'
 ): string => {
   return `Bạn là chuyên gia phân tích kịch bản và kiến trúc sư thế giới.
+BẮT BUỘC trả lời bằng ngôn ngữ: ${language.toUpperCase()}.
 [DỮ LIỆU ĐẦU VÀO]
 - Nhân vật chính: ${charName}
 - Mô tả nhân vật: ${charDesc}
@@ -42,10 +44,11 @@ export const getAnalyzeUserLorePrompt = (
   charDesc: string,
   userName: string,
   userDesc: string,
-  rawSetting: string
+  rawSetting: string,
+  language: string = 'Tiếng Việt'
 ): string => {
   return `Bạn là kiến trúc sư thế giới đa thể loại (cổ đại, hiện đại, tiên hiệp, ABO, thú nhân, tinh tế, sci-fi,...).
-BẮT BUỘC trả lời bằng tiếng Việt.
+BẮT BUỘC trả lời bằng ngôn ngữ: ${language.toUpperCase()}.
 
 [THÔNG TIN NHÂN VẬT]
 - Nhân vật chính: ${charName}
@@ -81,12 +84,12 @@ TRẢ VỀ JSON:
 }`;
 };
 
-export const getWorldSettingPrompt = (loreAnalysis: any): string => {
+export const getWorldSettingPrompt = (loreAnalysis: any, language: string = 'Tiếng Việt'): string => {
   return `Dựa trên phân tích sau:
 ${JSON.stringify(loreAnalysis, null, 2)}
 
 Hãy xây dựng thế giới tổng thể nhất quán với "genre" và "era".
-BẮT BUỘC trả lời bằng tiếng Việt.
+BẮT BUỘC trả lời bằng ngôn ngữ: ${language.toUpperCase()}.
 
 YÊU CẦU:
 - worldDetail: Miêu tả chi tiết thế giới (không cần quá dài, 1–2 đoạn), bao gồm:
@@ -113,7 +116,8 @@ TRẢ VỀ JSON:
 export const getSocialMemoryPrompt = (
   charName: string,
   worldGenesis: any,
-  loreAnalysis: any
+  loreAnalysis: any,
+  language: string = 'Tiếng Việt'
 ): string => {
   return `Dựa trên:
 - Nhân vật chính: ${charName}
@@ -122,7 +126,7 @@ export const getSocialMemoryPrompt = (
 - Xung đột chính: ${loreAnalysis.mainConflict || "Chưa rõ"}
 
 TẠO RA 3 NPC QUAN TRỌNG đối với ${charName}:
-BẮT BUỘC trả lời bằng tiếng Việt.
+BẮT BUỘC trả lời bằng ngôn ngữ: ${language.toUpperCase()}.
 
 YÊU CẦU:
 - Mỗi NPC:
@@ -141,11 +145,12 @@ TRẢ VỀ JSON:
 { "relations": [ ... ] }`;
 };
 
-export const getEconomyPrompt = (worldGenesis: any): string => {
+export const getEconomyPrompt = (worldGenesis: any, language: string = 'Tiếng Việt'): string => {
   return `Dựa trên thế giới:
 "${worldGenesis.worldDetail || "Chưa rõ"}"
 
 Hãy thiết kế hệ thống kinh tế CƠ BẢN:
+BẮT BUỘC trả lời bằng ngôn ngữ: ${language.toUpperCase()}.
 
 YÊU CẦU:
 - currencyName: tên tiền tệ, phù hợp thể loại & không gian văn hoá:
@@ -184,7 +189,8 @@ export const getInitialAssetsPrompt = (
   charName: string,
   userName: string,
   worldGenesis: any,
-  loreAnalysis: any
+  loreAnalysis: any,
+  language: string = 'Tiếng Việt'
 ): string => {
   return `Dựa trên:
 - Nhân vật chính: ${charName}
@@ -195,7 +201,7 @@ export const getInitialAssetsPrompt = (
 Hãy thiết kế tài sản, bất động sản và dòng tiền BAN ĐẦU.
 
 ⚠️ QUY TẮC QUAN TRỌNG:
-- BẮT BUỘC trả lời bằng tiếng Việt.
+- BẮT BUỘC trả lời bằng ngôn ngữ: ${language.toUpperCase()}.
 - Xác định nơi ở (Properties): Dựa vào cốt truyện, nếu ${charName} và ${userName} sống chung thì tạo 1 bất động sản chung. Nếu ${charName} giàu thì tạo nhiều nhà. Nếu ${userName} nghèo/sinh viên thì để ở trọ/ký túc xá.
 - Thu nhập (Income): Phải có nguồn tiền thực tế (lương, kinh doanh, trợ cấp...).
 - Chi tiêu (Expenses): Phải có các khoản chi thực tế (tiền nhà, ăn uống, bảo trì...).

@@ -318,6 +318,8 @@ export class GeminiService {
     return { text: "❌ Hệ thống AI đang bận." };
   }
 
+
+
   public async *safeGenerateContentStream(
     modelName: string,
     contents: any,
@@ -432,6 +434,20 @@ export class GeminiService {
       return "⏰ Kết nối với AI quá chậm hoặc bị treo.";
     }
     return "❌ Hệ thống AI đang bận.";
+  }
+
+  public async translateText(text: string, targetLanguage: string, modelName: string = DEFAULT_MODEL): Promise<string> {
+    try {
+      const prompt = `Translate the following text to ${targetLanguage}. Keep the original meaning, tone, and formatting. Do not add any extra explanations or quotes around the translation.\n\nText to translate:\n${text}`;
+      const response = await this.safeGenerateContent(modelName, prompt, "You are a professional translator.");
+      if (response && response.text) {
+        return response.text.trim();
+      }
+      return text;
+    } catch (e) {
+      console.error("Translation error:", e);
+      return text;
+    }
   }
 
   // ================================================================
@@ -713,7 +729,8 @@ ${history.map(m => `${m.sender === 'USER' ? userName : npcName}: ${m.text}`).joi
     npcType: string,
     history: any[],
     affinity: number = 50,
-    personalNotes: string = ""
+    personalNotes: string = "",
+    language: 'vi' | 'en' = 'vi'
   ) {
     const system = getNextSocialTurnSystemPrompt(
       charName,
@@ -721,7 +738,8 @@ ${history.map(m => `${m.sender === 'USER' ? userName : npcName}: ${m.text}`).joi
       npcName,
       npcType,
       affinity,
-      personalNotes
+      personalNotes,
+      language
     );
 
     const content = [
@@ -758,7 +776,8 @@ ${history.map(m => `${m.sender === 'USER' ? userName : npcName}: ${m.text}`).joi
     npcName: string,
     npcType: string,
     affinity: number = 50,
-    personalNotes: string = ""
+    personalNotes: string = "",
+    language: 'vi' | 'en' = 'vi'
   ) {
     const prompt = getSocialChatPrompt(
       charName,
@@ -766,7 +785,8 @@ ${history.map(m => `${m.sender === 'USER' ? userName : npcName}: ${m.text}`).joi
       npcName,
       npcType,
       affinity,
-      personalNotes
+      personalNotes,
+      language
     );
 
     const content = [{ role: "user", parts: [{ text: prompt }] }];
@@ -1036,14 +1056,16 @@ ${existingMemories.map(m => `- ${m}`).join('\n')}
     userName: string,
     userDesc: string,
     rawSetting: string,
-    modelName: string = DEFAULT_MODEL
+    modelName: string = DEFAULT_MODEL,
+    language: string = 'Tiếng Việt'
   ) {
     const prompt = getWorldContextPrompt(
       charName,
       charDesc,
       userName,
       userDesc,
-      rawSetting
+      rawSetting,
+      language
     );
 
     const content = [{ role: "user", parts: [{ text: prompt }] }];
@@ -1066,9 +1088,10 @@ ${existingMemories.map(m => `- ${m}`).join('\n')}
     charName: string,
     userName: string,
     worldContext: any,
-    modelName: string = DEFAULT_MODEL
+    modelName: string = DEFAULT_MODEL,
+    language: string = 'Tiếng Việt'
   ) {
-    const prompt = getNpcGenerationPrompt(charName, userName, worldContext);
+    const prompt = getNpcGenerationPrompt(charName, userName, worldContext, language);
 
     const content = [{ role: "user", parts: [{ text: prompt }] }];
     const res = await this.safeGenerateContent(modelName, content, undefined, true);
@@ -1093,14 +1116,16 @@ ${existingMemories.map(m => `- ${m}`).join('\n')}
     charDesc: string,
     userName: string,
     userDesc: string,
-    rawSetting: string
+    rawSetting: string,
+    language: string = 'Tiếng Việt'
   ) {
     const prompt = getAnalyzeUserLorePrompt(
       charName,
       charDesc,
       userName,
       userDesc,
-      rawSetting
+      rawSetting,
+      language
     );
 
     const content = [{ role: "user", parts: [{ text: prompt }] }];
@@ -1134,8 +1159,8 @@ ${existingMemories.map(m => `- ${m}`).join('\n')}
     }
   }
 
-  public async generateWorldSetting(loreAnalysis: any) {
-    const prompt = getWorldSettingPrompt(loreAnalysis);
+  public async generateWorldSetting(loreAnalysis: any, language: string = 'Tiếng Việt') {
+    const prompt = getWorldSettingPrompt(loreAnalysis, language);
 
     const content = [{ role: "user", parts: [{ text: prompt }] }];
     const res = await this.safeGenerateContent(
@@ -1167,12 +1192,14 @@ ${existingMemories.map(m => `- ${m}`).join('\n')}
   public async generateSocialMemory(
     charName: string,
     worldGenesis: any,
-    loreAnalysis: any
+    loreAnalysis: any,
+    language: string = 'Tiếng Việt'
   ) {
     const prompt = getSocialMemoryPrompt(
       charName,
       worldGenesis,
-      loreAnalysis
+      loreAnalysis,
+      language
     );
 
     const content = [{ role: "user", parts: [{ text: prompt }] }];
@@ -1220,8 +1247,8 @@ ${existingMemories.map(m => `- ${m}`).join('\n')}
   // ================================================================
   // ECONOMY & INITIAL ASSETS
   // ================================================================
-  public async generateEconomy(worldGenesis: any) {
-    const prompt = getEconomyPrompt(worldGenesis);
+  public async generateEconomy(worldGenesis: any, language: string = 'Tiếng Việt') {
+    const prompt = getEconomyPrompt(worldGenesis, language);
 
     const content = [{ role: "user", parts: [{ text: prompt }] }];
     const res = await this.safeGenerateContent(
@@ -1279,13 +1306,15 @@ ${existingMemories.map(m => `- ${m}`).join('\n')}
     charName: string,
     userName: string,
     worldGenesis: any,
-    loreAnalysis: any
+    loreAnalysis: any,
+    language: string = 'Tiếng Việt'
   ) {
     const prompt = getInitialAssetsPrompt(
       charName,
       userName,
       worldGenesis,
-      loreAnalysis
+      loreAnalysis,
+      language
     );
 
     const content = [{ role: "user", parts: [{ text: prompt }] }];
@@ -1340,14 +1369,16 @@ ${existingMemories.map(m => `- ${m}`).join('\n')}
     relations: Relation[],
     worldGenesis: any,
     loreAnalysis: any,
-    modelName: string = DEFAULT_MODEL
+    modelName: string = DEFAULT_MODEL,
+    language: string = 'Tiếng Việt'
   ) {
     const npcNames = relations.map((r) => r.name).join(", ");
     const prompt = getLegacyContentPrompt(
       charName,
       npcNames,
       worldGenesis,
-      loreAnalysis
+      loreAnalysis,
+      language
     );
 
     const content = [{ role: "user", parts: [{ text: prompt }] }];
@@ -1373,7 +1404,8 @@ ${existingMemories.map(m => `- ${m}`).join('\n')}
     character: Character,
     relations: Relation[],
     messages: Message[] = [],
-    modelName: string = DEFAULT_MODEL
+    modelName: string = DEFAULT_MODEL,
+    language: string = 'Tiếng Việt'
   ) {
     const authors = [character.name, ...relations.map((r) => r.name)];
     const randomAuthor = authors[Math.floor(Math.random() * authors.length)];
@@ -1383,7 +1415,8 @@ ${existingMemories.map(m => `- ${m}`).join('\n')}
       randomAuthor,
       character.world?.worldDetail || "",
       character.status || "",
-      chatContext
+      chatContext,
+      language
     );
 
     const content = [{ role: "user", parts: [{ text: prompt }] }];

@@ -43,7 +43,8 @@ TRẢ VỀ JSON:
   "name": "Tên nhân vật",
   "description": "Mô tả tính cách + bối cảnh",
   "openingMessage": "Lời chào đầu tiên (giọng chuẩn cho chat)",
-  "appearance": "Ngoại hình chi tiết"
+  "appearance": "Ngoại hình chi tiết",
+  "language": "Ngôn ngữ chính thức của nhân vật (ví dụ: Tiếng Việt, English, 日本語, etc.)"
 }`;
 };
 

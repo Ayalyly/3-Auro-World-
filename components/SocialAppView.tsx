@@ -77,7 +77,7 @@ const SocialAppView: React.FC<SocialAppViewProps> = ({
       try {
           const currentChar = characterRef.current; // Use Ref
           const socialModel = settings.socialModel || settings.model;
-          const newAIPost = await gemini.generateRandomPost(currentChar, currentChar.relations || [], messages, socialModel);
+          const newAIPost = await gemini.generateRandomPost(currentChar, currentChar.relations || [], messages, socialModel, settings.language || 'vi');
           if (newAIPost && newAIPost.content) {
               const author = [currentChar, ...(currentChar.relations || [])].find(m => m.name === newAIPost.authorName);
               const post: SocialPost = {

@@ -1,7 +1,8 @@
 export const getNpcGenerationPrompt = (
   charName: string,
   userName: string,
-  worldContext: any
+  worldContext: any,
+  language: string = 'Tiếng Việt'
 ): string => {
   return `Dựa trên bối cảnh: ${worldContext.worldDetail}
 Thể loại: ${worldContext.genre} (Thời đại: ${worldContext.era})
@@ -10,7 +11,7 @@ Nhân vật: ${charName}
 HÃY TẠO HỆ THỐNG XÃ HỘI VÀ KINH TẾ PHÙ HỢP VỚI THỂ LOẠI TRÊN (JSON):
 
 ⚠️ LƯU Ý QUAN TRỌNG:
-- BẮT BUỘC trả lời bằng tiếng Việt.
+- BẮT BUỘC trả lời bằng ngôn ngữ: ${language.toUpperCase()}.
 - Nếu là HIỆN ĐẠI: Tiền tệ là VND, USD, hoặc "Tiền". NPC là Bác sĩ, Trợ lý, Bạn bè, Người thân, Tình nhân... (KHÔNG tạo Tộc trưởng, Pháp sư).
 - Nếu là CỔ ĐẠI: Tiền tệ là Bạc, Lượng. NPC là Vương gia, Tướng quân, Nô tỳ...
 - Nếu là TIÊN HIỆP: Tiền tệ là Linh thạch. NPC là Sư huynh, Chưởng môn...
@@ -67,7 +68,8 @@ export const getNextSocialTurnSystemPrompt = (
   npcName: string,
   npcType: string,
   affinity: number,
-  personalNotes: string
+  personalNotes: string,
+  language: string = 'Tiếng Việt'
 ): string => {
   return `🎭 BẠN LÀ ${npcName} (${npcType})
 Hảo cảm với ${charName}: ${affinity}/100
@@ -75,6 +77,7 @@ Bí mật nội tâm: "${personalNotes}"
 Bối cảnh: ${charLore}
 
 Viết 1 tin nhắn ngắn (8–20 từ), phù hợp quan hệ & bối cảnh.
+BẮT BUỘC trả lời bằng ngôn ngữ: ${language.toUpperCase()}.
 JSON: { "sender": "NPC", "text": "...", "time": "HH:MM" }`;
 };
 
@@ -84,13 +87,15 @@ export const getSocialChatPrompt = (
   npcName: string,
   npcType: string,
   affinity: number,
-  personalNotes: string
+  personalNotes: string,
+  language: string = 'Tiếng Việt'
 ): string => {
   return `Viết cuộc hội thoại NGẮN (2 tin nhắn) LUÂN PHIÊN giữa ${npcName} (${npcType}) và ${charName}.
 - Hảo cảm: ${affinity}/100
 - Ghi chú NPC: "${personalNotes}"
 - Bối cảnh: ${charLore}
 
+BẮT BUỘC trả lời bằng ngôn ngữ: ${language.toUpperCase()}.
 Định dạng JSON:
 [
   { "sender": "NPC",  "text": "...", "time": "10:00" },

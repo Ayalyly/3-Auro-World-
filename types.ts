@@ -265,9 +265,11 @@ export interface Character {
   prompt?: string;
   appearance?: string;
   openingMessage: string;
+  language?: string;
   relationshipScore: number;
   initialAffinity?: number;
   youtubeLink?: string;
+  reactions?: { [key: string]: string };
   maxScore: number;
   status: string;
   hearts: number;

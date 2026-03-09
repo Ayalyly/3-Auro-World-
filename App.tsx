@@ -68,6 +68,7 @@ export default function App() {
   const [view, setView] = useState<AppView>('setup');
   const { settings, setSettings, saveSettingsToStorage, handleUpdateRules, DEFAULT_SETTINGS } = useSettings();
   const [currentBranchId, setCurrentBranchId] = useState<string>('main');
+  const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
   const [lastAffectionChange, setLastAffectionChange] = useState<number | null>(null);
   const [showAuroCard, setShowAuroCard] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -121,7 +122,10 @@ export default function App() {
     getLocalSlotsForWorld
   } = useWorldManager(firebaseRef, setNotification, setView, setSettings, settings);
 
-  const handleUpdateSettings = (newSettings: AppSettings) => {
+  const handleUpdateSettings = async (newSettings: AppSettings) => {
+    const oldLang = settings.language || 'vi';
+    const newLang = newSettings.language || 'vi';
+
     setSettings(newSettings);
     saveSettingsToStorage(newSettings);
     if (appMode === 'online' && firebaseRef.current.isReady()) {
@@ -151,6 +155,34 @@ export default function App() {
         });
     } else {
         geminiRef.current.updateProxySettings(null);
+    }
+
+    // Handle Language Change - Translate Opening Message
+    if (oldLang !== newLang && character) {
+      try {
+        setNotification({ title: 'Đang chuyển ngôn ngữ...', message: `Đang dịch lời mở đầu sang ${newLang === 'vi' ? 'Tiếng Việt' : 'Tiếng Anh'}...` });
+        const translatedOpening = await geminiRef.current.translateText(character.openingMessage, newLang);
+        
+        const updatedChar = { ...character, openingMessage: translatedOpening };
+        setCharacter(updatedChar);
+        
+        // Also update the first message if it's the opening message
+        setMessages(prev => prev.map((msg, idx) => {
+          if (idx === 0 && msg.sender === Sender.CHARACTER) {
+            return { ...msg, text: translatedOpening };
+          }
+          return msg;
+        }));
+
+        if (appMode === 'online') {
+          syncToFirebase(updatedChar, user, messages);
+        }
+        
+        setNotification({ title: 'Thành công', message: `Đã chuyển sang ${newLang === 'vi' ? 'Tiếng Việt' : 'Tiếng Anh'}` });
+      } catch (error) {
+        console.error("Failed to translate opening message:", error);
+        setNotification({ title: 'Lỗi', message: 'Không thể dịch lời mở đầu. Vui lòng thử lại.' });
+      }
     }
   };
 
@@ -738,7 +770,16 @@ export default function App() {
       // 1. Parse Tags
       const aiTransferMatch = fullText.match(/\[(?:CHUYỂN_KHOẢN|CK|TRANSFER|SEND):\s*(\d+)\]/i);
       const aiGiftMatch = fullText.match(/\[TẶNG:\s*(.*?)\s+(.*?)\]/i);
+      const aiYoutubeMatch = fullText.match(/\[YOUTUBE:\s*(.*?)\]/i);
       const affectionChange = AffectionManager.parseAffectionTag(fullText);
+
+      if (aiYoutubeMatch && character.reactions) {
+          const reaction = aiYoutubeMatch[1].trim();
+          const videoId = character.reactions[reaction];
+          if (videoId) {
+              setPlayingVideoId(videoId);
+          }
+      }
 
       // 1. Parse System Tag
       const { cleanText: parsedCleanText, systemData: systemUpdate } = parseSystemTag(fullText);
@@ -747,6 +788,7 @@ export default function App() {
       let cleanText = AffectionManager.cleanAffectionTag(parsedCleanText);
       cleanText = cleanText.replace(/\[(?:CHUYỂN_KHOẢN|CK|TRANSFER|SEND):\s*\d+\]/gi, "");
       cleanText = cleanText.replace(/\[TẶNG:\s*.*?\s+.*?\]/gi, "");
+      cleanText = cleanText.replace(/\[YOUTUBE:\s*.*?\]/gi, "");
 
       // Update message with clean text
       setMessages((prev) => 
@@ -1532,6 +1574,8 @@ export default function App() {
           lastAffectionChange={lastAffectionChange}
           isGenerating={isGenerating}
           onStop={handleStopGeneration}
+          playingVideoId={playingVideoId}
+          setPlayingVideoId={setPlayingVideoId}
         />
       );
     }

@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
-import { Character, Mood, SaveStatus, Branch } from '../types';
+import { Character, Mood, SaveStatus, Branch, AppSettings } from '../types';
 import BranchList from './BranchList';
+import YoutubePlayerModal from './YoutubePlayerModal';
 
 interface CharacterHeaderProps {
   character: Character;
@@ -18,6 +19,10 @@ interface CharacterHeaderProps {
   // NEW PROP FOR CHAR CARD
   onOpenProfile?: () => void;
   lastAffectionChange?: number | null;
+  settings: AppSettings;
+  onSaveSettings: (settings: AppSettings) => void;
+  playingVideoId?: string | null;
+  setPlayingVideoId?: (id: string | null) => void;
 }
 
 const getLevelConfig = (level: number) => {
@@ -74,18 +79,44 @@ const renderStatusIcon = (type: 'local' | 'cloud', status: string | SaveStatus) 
     );
 };
 
-const CharacterHeader: React.FC<CharacterHeaderProps> = ({ character, onSettings, onHome, onDashboard, localStatus = 'idle', cloudStatus = 'disabled', serverName, currentBranchId = 'main', onSwitchBranch, onOpenProfile, lastAffectionChange }) => {
+const CharacterHeader: React.FC<CharacterHeaderProps> = ({ 
+  character, 
+  onSettings, 
+  onHome, 
+  onDashboard, 
+  localStatus = 'idle', 
+  cloudStatus = 'disabled', 
+  serverName, 
+  currentBranchId = 'main', 
+  onSwitchBranch, 
+  onOpenProfile, 
+  lastAffectionChange,
+  settings,
+  onSaveSettings,
+  playingVideoId,
+  setPlayingVideoId
+}) => {
   const level = Math.floor(character.relationshipScore / 100) + 1;
   const currentProgress = character.relationshipScore % 100;
   const levelConf = getLevelConfig(level);
   
   const [showBranches, setShowBranches] = useState(false);
+  const [showYoutubeModal, setShowYoutubeModal] = useState(false);
   
   const currentBranchName = character.branches?.find(b => b.id === currentBranchId)?.name || (currentBranchId === 'main' ? "Nhánh chính" : "Nhánh ẩn");
 
   return (
     // GLASS HEADER - Taller for bigger avatar
     <div className="sticky top-0 z-40 bg-gradient-to-b from-white/95 to-blue-50/90 backdrop-blur-xl border-b border-white/50 px-4 py-3 shadow-sm animate-in slide-in-from-top-4 duration-500">
+      
+      {showYoutubeModal && setPlayingVideoId && (
+        <YoutubePlayerModal
+          isOpen={showYoutubeModal}
+          onClose={() => setShowYoutubeModal(false)}
+          playingVideoId={playingVideoId || null}
+          setPlayingVideoId={setPlayingVideoId}
+        />
+      )}
       
       {/* Show BranchList even if branches is undefined (it will fallback to just Main) */}
       {showBranches && onSwitchBranch && (
@@ -158,6 +189,15 @@ const CharacterHeader: React.FC<CharacterHeaderProps> = ({ character, onSettings
 
           {/* ACTION BUTTONS */}
           <div className="flex items-center gap-2 h-fit">
+              {/* Youtube Player Button */}
+              <button 
+                onClick={() => setShowYoutubeModal(true)}
+                className={`flex items-center justify-center w-9 h-9 rounded-full bg-white/60 border border-slate-200 hover:border-rose-200 hover:shadow-sm transition-all active:scale-90 ${playingVideoId ? 'text-rose-500 animate-pulse' : 'text-slate-500 hover:text-rose-500'}`}
+                title="Phát nhạc YouTube"
+              >
+                <i className="fa-solid fa-music text-sm"></i>
+              </button>
+
               {/* Dashboard Button */}
               <button onClick={onDashboard} className="flex items-center justify-center w-9 h-9 rounded-full bg-white/60 border border-slate-200 text-slate-500 hover:text-indigo-500 hover:border-indigo-100 hover:shadow-sm transition-all active:scale-90" title="Trung tâm điều hành">
                   <i className="fa-solid fa-folder-open text-sm"></i>

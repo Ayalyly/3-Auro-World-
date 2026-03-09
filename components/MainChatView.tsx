@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
+import YouTube from 'react-youtube';
 import { Character, UserProfile, Message, AppSettings, AppView, Sender, InventoryItem } from '../types';
 import MessageBubble from './MessageBubble';
 import InputBar from './InputBar';
@@ -35,6 +36,8 @@ interface MainChatViewProps {
   lastAffectionChange?: number | null;
   isGenerating?: boolean;
   onStop?: () => void;
+  playingVideoId: string | null;
+  setPlayingVideoId: (id: string | null) => void;
 }
 
 const MainChatView: React.FC<MainChatViewProps> = ({
@@ -65,7 +68,9 @@ const MainChatView: React.FC<MainChatViewProps> = ({
   onDashboard,
   lastAffectionChange,
   isGenerating,
-  onStop
+  onStop,
+  playingVideoId,
+  setPlayingVideoId
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [productProposal, setProductProposal] = useState<InventoryItem | null>(null);
@@ -150,9 +155,22 @@ const MainChatView: React.FC<MainChatViewProps> = ({
         onHome={onHome}
         onDashboard={onDashboard}
         lastAffectionChange={lastAffectionChange}
+        settings={settings}
+        onSaveSettings={onSaveSettings}
+        playingVideoId={playingVideoId}
+        setPlayingVideoId={setPlayingVideoId}
       />
 
       <div className="flex-1 overflow-y-auto px-4 py-2 custom-scrollbar">
+        {playingVideoId && (
+          <div className="fixed top-20 left-4 z-50 w-64 h-36 bg-black rounded-lg shadow-xl overflow-hidden">
+            <YouTube
+              videoId={playingVideoId}
+              opts={{ width: '256', height: '144', playerVars: { autoplay: 1 } }}
+              onEnd={() => setPlayingVideoId(null)}
+            />
+          </div>
+        )}
         {displayedMessages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full opacity-50">
             <i className="fa-solid fa-wind text-4xl text-slate-300 mb-2"></i>

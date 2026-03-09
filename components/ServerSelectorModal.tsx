@@ -77,16 +77,6 @@ const ServerSelectorModal: React.FC<ServerSelectorModalProps> = ({
                     </div>
                     {isSelected && <span style={styles.checkmark}>✓</span>}
                   </div>
-                  {isRecommended && (
-                      <div className="mt-1">
-                          <span style={styles.newBadge}>✨ MỚI</span>
-                      </div>
-                  )}
-                  {server.key === 'server2' && (
-                      <div className="mt-1">
-                          <span style={{...styles.newBadge, backgroundColor: '#fee2e2', color: '#dc2626'}}>🔥 ĐÔNG ĐÚC</span>
-                      </div>
-                  )}
                 </div>
               );
             })}

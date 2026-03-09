@@ -145,7 +145,9 @@ export class ProxyService {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${this.config.apiKey}`,
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "HTTP-Referer": typeof window !== 'undefined' ? window.location.origin : "https://auro-world.app",
+          "X-Title": "Auro World",
         },
         body: JSON.stringify({
           model: this.config.modelName,
@@ -253,7 +255,9 @@ export class ProxyService {
             method: "POST",
             headers: {
                 "Authorization": `Bearer ${this.config.apiKey}`,
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "HTTP-Referer": typeof window !== 'undefined' ? window.location.origin : "https://auro-world.app",
+                "X-Title": "Auro World",
             },
             body: JSON.stringify({
                 model: this.config.modelName,
@@ -341,7 +345,9 @@ export class ProxyService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.config.apiKey}`
+          'Authorization': `Bearer ${this.config.apiKey}`,
+          'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : 'https://auro-world.app',
+          'X-Title': 'Auro World',
         },
         body: JSON.stringify({
           model: this.config.modelName,

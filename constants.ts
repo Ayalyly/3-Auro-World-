@@ -1,5 +1,15 @@
 export const PROXY_PRESETS = [
     {
+      name: 'OpenRouter (Gemini 2.0 Flash Free)',
+      baseUrl: 'https://openrouter.ai/api/v1',
+      model: 'google/gemini-2.0-flash-exp:free'
+    },
+    {
+      name: 'OpenRouter (DeepSeek V3)',
+      baseUrl: 'https://openrouter.ai/api/v1',
+      model: 'deepseek/deepseek-chat'
+    },
+    {
       name: 'CosmosRP 2.5 (Standard)',
       baseUrl: 'https://api.pawan.krd/cosmosrp-2.5/v1/chat/completions',
       model: 'cosmosrp-2.5'

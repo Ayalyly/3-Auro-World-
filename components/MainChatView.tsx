@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import YouTube from 'react-youtube';
 import { Character, UserProfile, Message, AppSettings, AppView, Sender, InventoryItem } from '../types';
 import MessageBubble from './MessageBubble';
@@ -75,6 +76,13 @@ const MainChatView: React.FC<MainChatViewProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [productProposal, setProductProposal] = useState<InventoryItem | null>(null);
   const [isProcessingProposal, setIsProcessingProposal] = useState(false);
+  
+  // Player state
+  const [playerWidth, setPlayerWidth] = useState(220);
+  const [playerHeight, setPlayerHeight] = useState(120);
+  const [isResizing, setIsResizing] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -112,6 +120,7 @@ const MainChatView: React.FC<MainChatViewProps> = ({
 
   return (
     <div
+      ref={containerRef}
       className="flex flex-col h-[100dvh] w-full overflow-hidden relative"
       style={{
         background:
@@ -162,15 +171,88 @@ const MainChatView: React.FC<MainChatViewProps> = ({
       />
 
       <div className="flex-1 overflow-y-auto px-4 py-2 custom-scrollbar">
-        {playingVideoId && (
-          <div className="fixed top-20 left-4 z-50 w-64 h-36 bg-black rounded-lg shadow-xl overflow-hidden">
-            <YouTube
-              videoId={playingVideoId}
-              opts={{ width: '256', height: '144', playerVars: { autoplay: 1 } }}
-              onEnd={() => setPlayingVideoId(null)}
-            />
-          </div>
-        )}
+        <AnimatePresence>
+          {playingVideoId && (
+            <motion.div 
+              drag={!isResizing}
+              dragMomentum={false}
+              dragConstraints={containerRef}
+              initial={{ x: 96, y: 12, opacity: 0, scale: 0.8 }}
+              animate={{ 
+                opacity: 1, 
+                scale: 1,
+                width: isMinimized ? 120 : playerWidth,
+                height: isMinimized ? 40 : playerHeight
+              }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              className="fixed z-[100] bg-black rounded-2xl shadow-2xl overflow-hidden border-2 border-white/20 group cursor-move"
+            >
+              {/* Header / Drag Handle */}
+              <div className={`absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-black/80 to-transparent flex justify-between items-center px-3 z-10 transition-opacity ${isMinimized ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                <div className="flex items-center gap-2">
+                  <i className="fa-brands fa-youtube text-rose-500 text-xs"></i>
+                  {!isMinimized && <span className="text-[10px] text-white font-bold uppercase tracking-wider">YouTube Player</span>}
+                </div>
+                <div className="flex items-center gap-1">
+                  <button 
+                    onClick={() => setIsMinimized(!isMinimized)}
+                    className="w-5 h-5 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+                  >
+                    <i className={`fa-solid ${isMinimized ? 'fa-expand' : 'fa-compress'} text-[10px]`}></i>
+                  </button>
+                  <button 
+                    onClick={() => setPlayingVideoId(null)}
+                    className="w-5 h-5 rounded-full bg-white/10 hover:bg-rose-500 text-white flex items-center justify-center transition-colors"
+                  >
+                    <i className="fa-solid fa-xmark text-[10px]"></i>
+                  </button>
+                </div>
+              </div>
+
+              {!isMinimized && (
+                <>
+                  <YouTube
+                    videoId={playingVideoId}
+                    opts={{ 
+                      width: playerWidth.toString(), 
+                      height: playerHeight.toString(), 
+                      playerVars: { 
+                        autoplay: 1,
+                        modestbranding: 1,
+                        rel: 0
+                      } 
+                    }}
+                    onEnd={() => setPlayingVideoId(null)}
+                    className="w-full h-full"
+                  />
+
+                  {/* Resize Handle */}
+                  <motion.div
+                    drag
+                    dragMomentum={false}
+                    dragConstraints={{ left: 0, top: 0, right: 0, bottom: 0 }}
+                    onDragStart={() => setIsResizing(true)}
+                    onDragEnd={() => setIsResizing(false)}
+                    onDrag={(e, info) => {
+                      setPlayerWidth(prev => Math.max(160, prev + info.delta.x));
+                      setPlayerHeight(prev => Math.max(90, prev + info.delta.y));
+                    }}
+                    className="absolute bottom-0 right-0 w-8 h-8 cursor-nwse-resize flex items-center justify-center z-20 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <div className="w-4 h-4 bg-white/20 rounded-tl-lg border-r-2 border-b-2 border-white/40"></div>
+                  </motion.div>
+                </>
+              )}
+              
+              {isMinimized && (
+                <div className="w-full h-full flex items-center justify-center bg-rose-600/20">
+                   <span className="text-[8px] text-white font-black uppercase">Đang phát...</span>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {displayedMessages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full opacity-50">
             <i className="fa-solid fa-wind text-4xl text-slate-300 mb-2"></i>

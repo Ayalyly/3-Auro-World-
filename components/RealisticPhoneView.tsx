@@ -259,10 +259,29 @@ const RealisticPhoneView: React.FC<PhoneViewProps> = ({
         // Stop recognition while speaking
         try { recognitionRef.current?.stop(); } catch(e) {}
 
+        if (voiceSettings.useGeminiTTS) {
+            speakWithGemini(lastMsg.text);
+        } else {
             speakWithBrowser(lastMsg.text);
+        }
       }
     }
   }, [messages, isCalling, voiceSettings, availableVoices]);
+
+  const speakWithGemini = async (text: string) => {
+      setCallStatus('Speaking...');
+      try {
+          const base64Audio = await gemini.generateTTS(text, voiceSettings.geminiVoice);
+          if (base64Audio) {
+              await playAudio(base64Audio);
+          } else {
+              speakWithBrowser(text);
+          }
+      } catch (e) {
+          console.error("Gemini TTS error", e);
+          speakWithBrowser(text);
+      }
+  };
 
   const speakWithBrowser = (text: string) => {
       const utterance = new SpeechSynthesisUtterance(text);
@@ -306,6 +325,10 @@ const RealisticPhoneView: React.FC<PhoneViewProps> = ({
   };
 
   const testVoice = async () => {
+    if (voiceSettings.useGeminiTTS) {
+        speakWithGemini("Alo, em nghe nè. Giọng này ổn không anh?");
+        return;
+    }
     const utterance = new SpeechSynthesisUtterance("Alo, em nghe nè. Giọng này ổn không anh?");
     const voice = availableVoices.find(v => v.voiceURI === voiceSettings.voiceURI);
     if (voice) utterance.voice = voice;
@@ -606,6 +629,7 @@ const RealisticPhoneView: React.FC<PhoneViewProps> = ({
                 onUpdateCharacter={onUpdateCharacter}
                 setNpcTab={setTab}
                 t={t}
+                geminiService={gemini}
              />
           )}
 

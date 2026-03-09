@@ -59,12 +59,23 @@ export default function ModelSelector({
     }
 
     // Initial tab detection
-    if (selectedModel.includes('llama') || selectedModel.includes('qwen') || selectedModel.includes('gpt-oss') || selectedModel.includes('kimi')) {
-      setActiveTab('groq');
-    } else if (proxyConfig && (proxyConfig.activeModel === selectedModel || proxyConfig.model === selectedModel)) {
-      setActiveTab('proxy');
-    } else {
+    const isGemini = GEMINI_MODELS.some(m => m.id === selectedModel);
+    const isGroq = GROQ_MODELS.some(m => m.id === selectedModel);
+    const isProxy = (proxyConfig && (proxyConfig.activeModel === selectedModel || proxyConfig.model === selectedModel)) || 
+                    selectedModel.includes('/') || 
+                    ['gpt-3.5-turbo', 'gpt-4', 'deepseek-chat'].includes(selectedModel);
+
+    // Don't jump if the current tab already matches the model type
+    if (activeTab === 'gemini' && isGemini) return;
+    if (activeTab === 'groq' && isGroq) return;
+    if (activeTab === 'proxy' && isProxy) return;
+
+    if (isGemini) {
       setActiveTab('gemini');
+    } else if (isGroq) {
+      setActiveTab('groq');
+    } else if (isProxy) {
+      setActiveTab('proxy');
     }
   }, [selectedModel, settings.apiConfigs]);
 

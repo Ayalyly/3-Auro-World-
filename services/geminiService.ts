@@ -202,8 +202,8 @@ export class GeminiService {
   private isProxyModel(modelName: string): boolean {
     if (!modelName || !this.proxyConfig?.isActive) return false;
     
-    // 1. Nếu khớp chính xác tên model proxy đã cấu hình
-    if (this.proxyConfig.modelName === modelName) return true;
+    // 1. Nếu khớp chính xác tên model proxy đã cấu hình hoặc có dấu / (OpenRouter style)
+    if (this.proxyConfig.modelName === modelName || (modelName.includes('/') && this.proxyConfig.apiKey)) return true;
     
     // 2. Nếu KHÔNG PHẢI model Gemini và có Proxy Key
     const isGemini = modelName.startsWith('gemini-') || modelName.startsWith('auto-') || modelName.startsWith('veo-');
@@ -469,6 +469,33 @@ export class GeminiService {
     } catch (e) {
       console.error("Translation error:", e);
       return text;
+    }
+  }
+
+  // ================================================================
+  // SPEECH GENERATION (TTS)
+  // ================================================================
+  public async generateTTS(text: string, voiceName: string = 'Kore'): Promise<string | null> {
+    try {
+      const ai = this.getClient();
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-preview-tts",
+        contents: [{ parts: [{ text }] }],
+        config: {
+          responseModalities: [Modality.AUDIO],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: voiceName as any },
+            },
+          },
+        },
+      });
+
+      const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      return base64Audio || null;
+    } catch (error) {
+      console.error("TTS generation error:", error);
+      return null;
     }
   }
 

@@ -25,10 +25,15 @@ export default function ModelSelectorModal({
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; latency: number; message: string } | null>(null);
 
+  // Only sync settings, don't force reset selectedModel if it's already being edited
+  useEffect(() => {
+    setLocalSettings(settings);
+  }, [settings]);
+
+  // Only reset selectedModel when targetField changes or on initial mount
   useEffect(() => {
     setSelectedModel(settings[targetField] || 'gemini-3.1-flash-lite-preview');
-    setLocalSettings(settings);
-  }, [settings, targetField]);
+  }, [targetField]);
 
   const handleSave = () => {
     onSaveSettings({

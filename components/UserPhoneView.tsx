@@ -1,5 +1,7 @@
 import React from 'react';
 import { UserProfile, UserNPCRelation, Character } from '../types';
+import { GeminiService } from '../services/geminiService';
+import { HuggingFaceService } from '../services/huggingFaceService';
 
 interface UserPhoneProps {
   user?: UserProfile;
@@ -12,9 +14,10 @@ interface UserPhoneProps {
   onUpdateCharacter?: (newChar: Character) => void;
   setNpcTab?: (tab: any) => void;
   t: (key: string) => string;
+  geminiService?: GeminiService;
 }
 
-const UserPhoneView: React.FC<UserPhoneProps> = ({ user, onUpdateUser, onClose, currentTime, setPhoneMode, onSendMessageToNPC, character, onUpdateCharacter, setNpcTab, t }) => {
+const UserPhoneView: React.FC<UserPhoneProps> = ({ user, onUpdateUser, onClose, currentTime, setPhoneMode, onSendMessageToNPC, character, onUpdateCharacter, setNpcTab, t, geminiService }) => {
   const [userTab, setUserTab] = React.useState<'home' | 'contacts' | 'messages' | 'settings' | 'contactDetail' | 'chatDetail' | 'userCall' | 'voiceSettings' | 'call'>('home');
   const [userSelectedContact, setUserSelectedContact] = React.useState<UserNPCRelation | null>(null);
   const [editName, setEditName] = React.useState('');
@@ -27,6 +30,8 @@ const UserPhoneView: React.FC<UserPhoneProps> = ({ user, onUpdateUser, onClose, 
   const [userMessageInput, setUserMessageInput] = React.useState('');
   const [isUserSending, setIsUserSending] = React.useState(false);
   const [isMuted, setIsMuted] = React.useState(false);
+  const [isKeyboardMode, setIsKeyboardMode] = React.useState(false);
+  const [keyboardInput, setKeyboardInput] = React.useState('');
   const userMessagesEndRef = React.useRef<HTMLDivElement>(null);
 
   const [voiceSettings, setVoiceSettings] = React.useState(() => {
@@ -35,6 +40,12 @@ const UserPhoneView: React.FC<UserPhoneProps> = ({ user, onUpdateUser, onClose, 
         pitch: 1, 
         rate: 1, 
         voiceURI: '', 
+        useGeminiTTS: false, 
+        useHuggingFaceTTS: true,
+        geminiVoice: 'Kore', 
+        hfApiKey: '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',
+      hfModel: 'facebook/mms-tts-vie',
+        provider: 'huggingface',
         youtubeLinks: ['https://www.youtube.com/watch?v=jfKfPfyJRdk'],
         selectedYoutubeLink: 'https://www.youtube.com/watch?v=jfKfPfyJRdk',
         videoScale: 1.5,
@@ -49,6 +60,12 @@ const UserPhoneView: React.FC<UserPhoneProps> = ({ user, onUpdateUser, onClose, 
   const [callStatus, setCallStatus] = React.useState('Ready');
   const synthesisRef = React.useRef<SpeechSynthesis>(window.speechSynthesis);
   const recognitionRef = React.useRef<any>(null);
+  const geminiRef = React.useRef(new GeminiService());
+  const hfRef = React.useRef(new HuggingFaceService());
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+
+  const gemini = geminiService || geminiRef.current;
+  const hf = hfRef.current;
 
   React.useEffect(() => {
     if (character.youtubeLink) {
@@ -94,12 +111,24 @@ const UserPhoneView: React.FC<UserPhoneProps> = ({ user, onUpdateUser, onClose, 
             try {
                 const response = await onSendMessageToNPC(character.id, transcript, relation);
                 if (response) {
-                    speakWithBrowser(response);
+                    if (voiceSettings.useHuggingFaceTTS) {
+                        speakWithHuggingFace(response);
+                    } else if (voiceSettings.useGeminiTTS) {
+                        speakWithGemini(response);
+                    } else {
+                        speakWithBrowser(response);
+                    }
                 } else {
-                    speakWithBrowser("Xin lỗi, tôi không nghe rõ.");
+                    const fallback = "Xin lỗi, tôi không nghe rõ.";
+                    if (voiceSettings.useHuggingFaceTTS) speakWithHuggingFace(fallback);
+                    else if (voiceSettings.useGeminiTTS) speakWithGemini(fallback);
+                    else speakWithBrowser(fallback);
                 }
             } catch (e) {
-                speakWithBrowser("Có lỗi xảy ra khi kết nối.");
+                const errorMsg = "Có lỗi xảy ra khi kết nối.";
+                if (voiceSettings.useHuggingFaceTTS) speakWithHuggingFace(errorMsg);
+                else if (voiceSettings.useGeminiTTS) speakWithGemini(errorMsg);
+                else speakWithBrowser(errorMsg);
             }
         }
       };
@@ -115,6 +144,90 @@ const UserPhoneView: React.FC<UserPhoneProps> = ({ user, onUpdateUser, onClose, 
     };
   }, [isCalling, callStatus, onSendMessageToNPC, user, character.id, voiceSettings, availableVoices]);
 
+  const speakWithGemini = async (text: string) => {
+      setCallStatus('Speaking...');
+      try {
+          const base64Audio = await gemini.generateTTS(text, voiceSettings.geminiVoice);
+          if (base64Audio) {
+              await playAudio(base64Audio);
+          } else {
+              speakWithBrowser(text);
+          }
+      } catch (e) {
+          console.error("Gemini TTS error", e);
+          speakWithBrowser(text);
+      }
+  };
+
+  const speakWithHuggingFace = async (text: string) => {
+      setCallStatus('Generating voice...');
+      try {
+          const hfService = new HuggingFaceService(voiceSettings.hfApiKey || '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');
+          const base64Audio = await hfService.generateTTS(text, voiceSettings.hfModel);
+          if (base64Audio) {
+              setCallStatus('Speaking...');
+              await playAudio(base64Audio);
+              setCallStatus('Listening...');
+          } else {
+              setCallStatus('Voice failed');
+              setTimeout(() => setCallStatus('Listening...'), 2000);
+              speakWithBrowser(text);
+          }
+      } catch (e) {
+          console.error("Hugging Face TTS error", e);
+          setCallStatus('Connection Error');
+          setTimeout(() => setCallStatus('Listening...'), 2000);
+          speakWithBrowser(text);
+      }
+  };
+
+  const playAudio = async (base64Data: string) => {
+      if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current = null;
+      }
+      
+      try {
+          const cleanBase64 = base64Data.replace(/\s/g, '');
+          let mimeType = 'audio/mp3';
+          if (cleanBase64.startsWith('UklGR')) mimeType = 'audio/wav';
+          else if (cleanBase64.startsWith('OggS')) mimeType = 'audio/ogg';
+          
+          const binaryString = window.atob(cleanBase64);
+          const len = binaryString.length;
+          const bytes = new Uint8Array(len);
+          for (let i = 0; i < len; i++) {
+              bytes[i] = binaryString.charCodeAt(i);
+          }
+          const blob = new Blob([bytes], { type: mimeType });
+          const url = URL.createObjectURL(blob);
+          
+          const audio = new Audio(url);
+          audioRef.current = audio;
+          
+          audio.onended = () => {
+              setCallStatus('Listening...');
+              URL.revokeObjectURL(url);
+              if (!isKeyboardMode) {
+                  try {
+                      recognitionRef.current?.start();
+                  } catch (e) {}
+              }
+          };
+          
+          audio.onerror = (e) => {
+              console.error("Audio playback error", e);
+              setCallStatus('Audio Error');
+              URL.revokeObjectURL(url);
+          };
+
+          await audio.play();
+      } catch (e) {
+          console.error("Audio setup/play error", e);
+          setCallStatus('Audio Error');
+      }
+  };
+
   const speakWithBrowser = (text: string) => {
       const utterance = new SpeechSynthesisUtterance(text);
       const voice = availableVoices.find(v => v.voiceURI === voiceSettings.voiceURI);
@@ -123,10 +236,12 @@ const UserPhoneView: React.FC<UserPhoneProps> = ({ user, onUpdateUser, onClose, 
       utterance.rate = voiceSettings.rate;
       utterance.onend = () => {
            setCallStatus('Listening...');
-           try {
-              recognitionRef.current?.start();
-           } catch (e) {
-              // Ignore if already started
+           if (!isKeyboardMode) {
+               try {
+                  recognitionRef.current?.start();
+               } catch (e) {
+                  // Ignore if already started
+               }
            }
       };
       synthesisRef.current.speak(utterance);
@@ -135,10 +250,12 @@ const UserPhoneView: React.FC<UserPhoneProps> = ({ user, onUpdateUser, onClose, 
   const startCall = () => {
     setIsCalling(true);
     setCallStatus('Listening...');
-    try {
-        recognitionRef.current?.start();
-    } catch (e) {
-        console.error("Start error", e);
+    if (!isKeyboardMode) {
+        try {
+            recognitionRef.current?.start();
+        } catch (e) {
+            console.error("Start error", e);
+        }
     }
   };
 
@@ -147,6 +264,10 @@ const UserPhoneView: React.FC<UserPhoneProps> = ({ user, onUpdateUser, onClose, 
     setCallStatus('Ended');
     recognitionRef.current?.stop();
     synthesisRef.current.cancel();
+    if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+    }
   };
 
   const handleStopListening = () => {
@@ -173,6 +294,14 @@ const UserPhoneView: React.FC<UserPhoneProps> = ({ user, onUpdateUser, onClose, 
   }, []);
 
   const testVoice = async () => {
+    if (voiceSettings.useHuggingFaceTTS) {
+        speakWithHuggingFace("Alo, em nghe nè. Giọng này ổn không anh?");
+        return;
+    }
+    if (voiceSettings.useGeminiTTS) {
+        speakWithGemini("Alo, em nghe nè. Giọng này ổn không anh?");
+        return;
+    }
     const utterance = new SpeechSynthesisUtterance("Alo, em nghe nè. Giọng này ổn không anh?");
     const voice = availableVoices.find(v => v.voiceURI === voiceSettings.voiceURI);
     if (voice) utterance.voice = voice;
@@ -243,6 +372,41 @@ const UserPhoneView: React.FC<UserPhoneProps> = ({ user, onUpdateUser, onClose, 
       } finally {
           setIsUserSending(false);
       }
+  };
+
+  const handleKeyboardSubmit = async () => {
+    if (!keyboardInput.trim() || !onSendMessageToNPC || !user) return;
+    
+    const text = keyboardInput.trim();
+    setKeyboardInput('');
+    setCallStatus('Processing...');
+    
+    if (onSendMessageToNPC && user) {
+        const rel = user.npcRelations?.find(r => r.npcId === character.id);
+        const relation = rel ? rel.relationship : 'Người quen';
+        try {
+            const response = await onSendMessageToNPC(character.id, text, relation);
+            if (response) {
+                if (voiceSettings.useHuggingFaceTTS) {
+                    speakWithHuggingFace(response);
+                } else if (voiceSettings.useGeminiTTS) {
+                    speakWithGemini(response);
+                } else {
+                    speakWithBrowser(response);
+                }
+            } else {
+                const fallback = "Xin lỗi, tôi không nghe rõ.";
+                if (voiceSettings.useHuggingFaceTTS) speakWithHuggingFace(fallback);
+                else if (voiceSettings.useGeminiTTS) speakWithGemini(fallback);
+                else speakWithBrowser(fallback);
+            }
+        } catch (e) {
+            const errorMsg = "Có lỗi xảy ra khi kết nối.";
+            if (voiceSettings.useHuggingFaceTTS) speakWithHuggingFace(errorMsg);
+            else if (voiceSettings.useGeminiTTS) speakWithGemini(errorMsg);
+            else speakWithBrowser(errorMsg);
+        }
+    }
   };
 
   const handleAddNewUserContact = () => {
@@ -417,39 +581,72 @@ const UserPhoneView: React.FC<UserPhoneProps> = ({ user, onUpdateUser, onClose, 
                 </div>
 
                 {/* Controls */}
-                <div className="flex items-center gap-8 mb-12">
-                     <button 
-                        onClick={() => setIsMuted(!isMuted)}
-                        className={`w-16 h-16 rounded-full flex items-center justify-center border transition-all active:scale-95 ${isMuted ? 'bg-white text-black border-white' : 'bg-white/10 text-white border-white/10 hover:bg-white/20'}`}
-                    >
-                        <i className={`fa-solid ${isMuted ? 'fa-microphone-slash' : 'fa-microphone'} text-2xl`}></i>
-                    </button>
-
-                    {isCalling && callStatus === 'Listening...' && (
-                        <button 
-                            onClick={handleStopListening}
-                            className="w-20 h-20 rounded-full flex items-center justify-center bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_30px_rgba(99,102,241,0.6)] border-4 border-indigo-400/30 transition-all active:scale-90 z-50"
-                        >
-                            <i className="fa-solid fa-check text-3xl"></i>
-                        </button>
+                <div className="flex flex-col items-center gap-6 w-full px-8 mb-12">
+                    {isKeyboardMode && isCalling && (
+                        <div className="w-full flex gap-2 animate-in slide-in-from-bottom-4 duration-300">
+                            <input 
+                                type="text"
+                                value={keyboardInput}
+                                onChange={(e) => setKeyboardInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleKeyboardSubmit();
+                                }}
+                                placeholder="Nhập tin nhắn..."
+                                className="flex-1 h-12 bg-white/10 border border-white/20 rounded-2xl px-4 text-sm text-white focus:outline-none focus:border-indigo-500/50 transition-all"
+                                autoFocus
+                            />
+                            <button 
+                                onClick={handleKeyboardSubmit}
+                                className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white active:scale-95 transition-all"
+                            >
+                                <i className="fa-solid fa-paper-plane"></i>
+                            </button>
+                        </div>
                     )}
 
-                    <button 
-                        onClick={isCalling ? endCall : startCall}
-                        className={`w-24 h-24 rounded-full flex items-center justify-center shadow-2xl transition-all active:scale-90 ${isCalling ? 'bg-rose-500 hover:bg-rose-600' : 'bg-emerald-500 hover:bg-emerald-600'}`}
-                    >
-                        <i className={`fa-solid ${isCalling ? 'fa-phone-slash' : 'fa-phone'} text-4xl text-white`}></i>
-                    </button>
+                    <div className="flex items-center gap-6">
+                        <button 
+                            onClick={() => {
+                                if (isKeyboardMode) {
+                                    setIsKeyboardMode(false);
+                                    if (isCalling && callStatus === 'Listening...') {
+                                        try { recognitionRef.current?.start(); } catch(e) {}
+                                    }
+                                } else {
+                                    setIsKeyboardMode(true);
+                                    try { recognitionRef.current?.stop(); } catch(e) {}
+                                }
+                            }}
+                            className={`w-14 h-14 rounded-full flex items-center justify-center border transition-all active:scale-95 ${isKeyboardMode ? 'bg-indigo-600 text-white border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.4)]' : 'bg-white/10 text-white border-white/10 hover:bg-white/20'}`}
+                            title="Keyboard Mode"
+                        >
+                            <i className="fa-solid fa-keyboard text-xl"></i>
+                        </button>
 
-                     <button 
-                        onClick={() => {
-                            endCall();
-                            setUserTab('home');
-                        }}
-                        className="w-16 h-16 rounded-full flex items-center justify-center bg-white/10 text-white border border-white/10 hover:bg-white/20 transition-all active:scale-95"
-                    >
-                        <i className="fa-solid fa-xmark text-2xl"></i>
-                    </button>
+                        <button 
+                            onClick={() => setIsMuted(!isMuted)}
+                            className={`w-14 h-14 rounded-full flex items-center justify-center border transition-all active:scale-95 ${isMuted ? 'bg-white text-black border-white' : 'bg-white/10 text-white border-white/10 hover:bg-white/20'}`}
+                        >
+                            <i className={`fa-solid ${isMuted ? 'fa-microphone-slash' : 'fa-microphone'} text-xl`}></i>
+                        </button>
+
+                        <button 
+                            onClick={isCalling ? endCall : startCall}
+                            className={`w-20 h-20 rounded-full flex items-center justify-center shadow-2xl transition-all active:scale-90 ${isCalling ? 'bg-rose-500 hover:bg-rose-600' : 'bg-emerald-500 hover:bg-emerald-600'}`}
+                        >
+                            <i className={`fa-solid ${isCalling ? 'fa-phone-slash' : 'fa-phone'} text-3xl text-white`}></i>
+                        </button>
+
+                        <button 
+                            onClick={() => {
+                                endCall();
+                                setUserTab('home');
+                            }}
+                            className="w-14 h-14 rounded-full flex items-center justify-center bg-white/10 text-white border border-white/10 hover:bg-white/20 transition-all active:scale-95"
+                        >
+                            <i className="fa-solid fa-xmark text-xl"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         )}
@@ -528,6 +725,28 @@ const UserPhoneView: React.FC<UserPhoneProps> = ({ user, onUpdateUser, onClose, 
 
                 {/* Controls Container */}
                 <div className={`w-full z-20 pb-8 transition-all duration-500 ${isCalling ? 'absolute bottom-0 px-8 bg-gradient-to-t from-black/80 to-transparent pt-20' : 'space-y-8 relative'}`}>
+                    {isKeyboardMode && isCalling && (
+                        <div className="w-full flex gap-2 mb-6 animate-in slide-in-from-bottom-4 duration-300">
+                            <input 
+                                type="text"
+                                value={keyboardInput}
+                                onChange={(e) => setKeyboardInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleKeyboardSubmit();
+                                }}
+                                placeholder="Nhập tin nhắn..."
+                                className="flex-1 h-12 bg-black/40 backdrop-blur-md border border-white/20 rounded-2xl px-4 text-sm text-white focus:outline-none focus:border-emerald-500/50 transition-all"
+                                autoFocus
+                            />
+                            <button 
+                                onClick={handleKeyboardSubmit}
+                                className="w-12 h-12 bg-emerald-600 rounded-2xl flex items-center justify-center text-white active:scale-95 transition-all"
+                            >
+                                <i className="fa-solid fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    )}
+                    
                     {!isCalling ? (
                         <div className="flex justify-center">
                             <button onClick={startCall} className="w-20 h-20 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(16,185,129,0.5)] active:scale-90 transition-all z-10 hover:bg-emerald-600 animate-bounce">
@@ -535,12 +754,29 @@ const UserPhoneView: React.FC<UserPhoneProps> = ({ user, onUpdateUser, onClose, 
                             </button>
                         </div>
                     ) : (
-                        <div className="flex justify-center gap-6 items-center">
+                        <div className="flex justify-center gap-4 items-center">
+                            <button 
+                                onClick={() => {
+                                    if (isKeyboardMode) {
+                                        setIsKeyboardMode(false);
+                                        if (isCalling && callStatus === 'Listening...') {
+                                            try { recognitionRef.current?.start(); } catch(e) {}
+                                        }
+                                    } else {
+                                        setIsKeyboardMode(true);
+                                        try { recognitionRef.current?.stop(); } catch(e) {}
+                                    }
+                                }}
+                                className={`w-12 h-12 rounded-full flex items-center justify-center border transition-all active:scale-95 ${isKeyboardMode ? 'bg-emerald-600 text-white border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.4)]' : 'bg-white/20 backdrop-blur-md text-white border-white/10 hover:bg-white/30'}`}
+                            >
+                                <i className="fa-solid fa-keyboard"></i>
+                            </button>
+
                             <button className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-all active:scale-95">
                                 <i className="fa-solid fa-microphone-slash"></i>
                             </button>
 
-                            {callStatus === 'Listening...' && (
+                            {callStatus === 'Listening...' && !isKeyboardMode && (
                                 <button 
                                     onClick={handleStopListening}
                                     className="w-14 h-14 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-indigo-500 border-2 border-indigo-400/30 transition-all active:scale-95 z-50"
@@ -578,46 +814,130 @@ const UserPhoneView: React.FC<UserPhoneProps> = ({ user, onUpdateUser, onClose, 
                 </div>
 
                 <div className="space-y-6 overflow-y-auto custom-scrollbar flex-1 pb-10">
-                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Chọn giọng trình duyệt</label>
-                        <select 
-                            className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-xs outline-none focus:border-emerald-500/50 transition-colors"
-                            value={voiceSettings.voiceURI}
-                            onChange={(e) => setVoiceSettings(prev => ({ ...prev, voiceURI: e.target.value }))}
+                    {/* Toggle Hugging Face TTS */}
+                    <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
+                        <div className="flex flex-col">
+                            <span className="text-[10px] font-bold text-white uppercase tracking-widest">Hugging Face TTS (Free)</span>
+                            <span className="text-[8px] text-slate-400">Sử dụng model từ Hugging Face</span>
+                        </div>
+                        <button 
+                            onClick={() => setVoiceSettings(prev => ({ 
+                                ...prev, 
+                                useHuggingFaceTTS: !prev.useHuggingFaceTTS,
+                                useGeminiTTS: !prev.useHuggingFaceTTS ? false : prev.useGeminiTTS
+                            }))}
+                            className={`w-10 h-5 rounded-full relative transition-colors ${voiceSettings.useHuggingFaceTTS ? 'bg-indigo-500' : 'bg-slate-700'}`}
                         >
-                            {availableVoices.map((v, index) => (
-                                <option key={`${v.voiceURI}-${index}`} value={v.voiceURI} className="text-black">
-                                    {v.name} ({v.lang})
-                                </option>
-                            ))}
-                        </select>
+                            <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${voiceSettings.useHuggingFaceTTS ? 'left-6' : 'left-1'}`}></div>
+                        </button>
                     </div>
 
-                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                        <div className="flex justify-between">
-                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cao độ (Pitch)</label>
-                            <span className="text-[10px] font-mono text-emerald-400">{voiceSettings.pitch}</span>
+                    {/* Toggle Gemini TTS */}
+                    <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
+                        <div className="flex flex-col">
+                            <span className="text-[10px] font-bold text-white uppercase tracking-widest">Giọng AI Cao Cấp</span>
+                            <span className="text-[8px] text-slate-400">Sử dụng Gemini TTS (Tự nhiên hơn)</span>
                         </div>
-                        <input 
-                            type="range" min="0.5" max="2" step="0.1"
-                            value={voiceSettings.pitch}
-                            onChange={(e) => setVoiceSettings(prev => ({ ...prev, pitch: parseFloat(e.target.value) }))}
-                            className="w-full accent-emerald-500"
-                        />
+                        <button 
+                            onClick={() => setVoiceSettings(prev => ({ ...prev, useGeminiTTS: !prev.useGeminiTTS }))}
+                            className={`w-10 h-5 rounded-full relative transition-colors ${voiceSettings.useGeminiTTS ? 'bg-emerald-500' : 'bg-slate-700'}`}
+                        >
+                            <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${voiceSettings.useGeminiTTS ? 'left-6' : 'left-1'}`}></div>
+                        </button>
                     </div>
 
-                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                        <div className="flex justify-between">
-                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tốc độ (Rate)</label>
-                            <span className="text-[10px] font-mono text-emerald-400">{voiceSettings.rate}</span>
+                    {voiceSettings.useHuggingFaceTTS ? (
+                        <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                             <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Hugging Face API Key</label>
+                                <input 
+                                    type="password"
+                                    value={voiceSettings.hfApiKey || ''}
+                                    onChange={(e) => setVoiceSettings(prev => ({ ...prev, hfApiKey: e.target.value }))}
+                                    placeholder="hf_..."
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-xs outline-none focus:border-indigo-500/50 transition-colors"
+                                />
+                            </div>
+                             <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Model ID</label>
+                                <input 
+                                    type="text"
+                                    value={voiceSettings.hfModel}
+                                    onChange={(e) => setVoiceSettings(prev => ({ ...prev, hfModel: e.target.value }))}
+                                    placeholder="VD: facebook/mms-tts-vie"
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-xs outline-none focus:border-indigo-500/50 transition-colors"
+                                />
+                            </div>
+                            <p className="text-[9px] text-slate-500 italic text-center">
+                                * Sử dụng API miễn phí từ Hugging Face. Một số model có thể cần thời gian khởi động.
+                            </p>
                         </div>
-                        <input 
-                            type="range" min="0.5" max="2" step="0.1"
-                            value={voiceSettings.rate}
-                            onChange={(e) => setVoiceSettings(prev => ({ ...prev, rate: parseFloat(e.target.value) }))}
-                            className="w-full accent-emerald-500"
-                        />
-                    </div>
+                    ) : voiceSettings.useGeminiTTS ? (
+                        <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Chọn giọng Gemini</label>
+                            <div className="grid grid-cols-2 gap-2">
+                                {['Kore', 'Puck', 'Charon', 'Fenrir', 'Zephyr'].map(voice => (
+                                    <button
+                                        key={voice}
+                                        onClick={() => setVoiceSettings(prev => ({ ...prev, geminiVoice: voice }))}
+                                        className={`p-3 rounded-xl border text-[10px] font-bold uppercase transition-all ${
+                                            voiceSettings.geminiVoice === voice 
+                                            ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' 
+                                            : 'bg-white/5 border-white/5 text-slate-400 hover:bg-white/10'
+                                        }`}
+                                    >
+                                        {voice}
+                                    </button>
+                                ))}
+                            </div>
+                            <p className="text-[9px] text-slate-500 italic mt-2 text-center">
+                                * Giọng AI cần kết nối mạng để hoạt động.
+                            </p>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Chọn giọng trình duyệt</label>
+                                <select 
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-xs outline-none focus:border-emerald-500/50 transition-colors"
+                                    value={voiceSettings.voiceURI}
+                                    onChange={(e) => setVoiceSettings(prev => ({ ...prev, voiceURI: e.target.value }))}
+                                >
+                                    {availableVoices.map((v, index) => (
+                                        <option key={`${v.voiceURI}-${index}`} value={v.voiceURI} className="text-black">
+                                            {v.name} ({v.lang})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                                <div className="flex justify-between">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cao độ (Pitch)</label>
+                                    <span className="text-[10px] font-mono text-emerald-400">{voiceSettings.pitch}</span>
+                                </div>
+                                <input 
+                                    type="range" min="0.5" max="2" step="0.1"
+                                    value={voiceSettings.pitch}
+                                    onChange={(e) => setVoiceSettings(prev => ({ ...prev, pitch: parseFloat(e.target.value) }))}
+                                    className="w-full accent-emerald-500"
+                                />
+                            </div>
+
+                            <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                                <div className="flex justify-between">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tốc độ (Rate)</label>
+                                    <span className="text-[10px] font-mono text-emerald-400">{voiceSettings.rate}</span>
+                                </div>
+                                <input 
+                                    type="range" min="0.5" max="2" step="0.1"
+                                    value={voiceSettings.rate}
+                                    onChange={(e) => setVoiceSettings(prev => ({ ...prev, rate: parseFloat(e.target.value) }))}
+                                    className="w-full accent-emerald-500"
+                                />
+                            </div>
+                        </>
+                    )}
 
                     <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
                         <div className="flex justify-between">

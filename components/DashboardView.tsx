@@ -17,6 +17,7 @@ interface DashboardViewProps {
   onUpdateSettings: (newSettings: AppSettings) => void;
   onLogout: () => void;
   onLoadAllCharacters?: () => void;
+  onLoadLocalCharacters?: () => void;
   t: (key: string) => string;
   onUpdateUser?: (user: UserProfile) => void;
   shopItems?: InventoryItem[];
@@ -38,6 +39,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
   onUpdateSettings,
   onLogout,
   onLoadAllCharacters,
+  onLoadLocalCharacters,
   t,
   onUpdateUser,
   shopItems = []
@@ -1035,14 +1037,24 @@ const DashboardView: React.FC<DashboardViewProps> = ({
               <div className="flex justify-between items-center px-2">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">DANH SÁCH ({slots.length})</p>
                 
-                {appMode === 'online' && onLoadAllCharacters && (
-                  <button 
-                    onClick={onLoadAllCharacters} 
-                    className="bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 text-blue-600 text-[9px] font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 shadow-sm border border-blue-100 active:scale-95 group"
-                  >
-                    <i className="fa-solid fa-cloud-arrow-down group-hover:animate-bounce"></i> LOAD ALL
-                  </button>
-                )}
+                <div className="flex gap-2">
+                  {appMode === 'online' && onLoadLocalCharacters && (
+                    <button 
+                      onClick={onLoadLocalCharacters} 
+                      className="bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 text-amber-600 text-[9px] font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 shadow-sm border border-amber-100 active:scale-95 group"
+                    >
+                      <i className="fa-solid fa-laptop-code group-hover:animate-pulse"></i> TẢI DỮ LIỆU TRÌNH DUYỆT
+                    </button>
+                  )}
+                  {appMode === 'online' && onLoadAllCharacters && (
+                    <button 
+                      onClick={onLoadAllCharacters} 
+                      className="bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 text-blue-600 text-[9px] font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 shadow-sm border border-blue-100 active:scale-95 group"
+                    >
+                      <i className="fa-solid fa-cloud-arrow-down group-hover:animate-bounce"></i> LOAD ALL
+                    </button>
+                  )}
+                </div>
               </div>
               
               {slots.map(slot => (

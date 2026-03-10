@@ -117,17 +117,8 @@ export function useWorldManager(
         localStorage.setItem('auro_settings', JSON.stringify(mergedSettings));
       }
       
-      const onlineSlots = await firebaseRef.current.loadWorldCharacters(worldId, 3);
-      const localSlots = getLocalSlotsForWorld(worldId);
-      
-      const mergedSlots = [...onlineSlots];
-      localSlots.forEach(ls => {
-        if (!mergedSlots.find(os => os.id === ls.id)) {
-          mergedSlots.push({ ...ls, isLocalOnly: true });
-        }
-      });
-
-      setSlots(mergedSlots.sort((a, b) => b.lastPlayed - a.lastPlayed));
+      const onlineSlots = await firebaseRef.current.loadWorldCharacters(worldId, 10);
+      setSlots(onlineSlots.sort((a, b) => b.lastPlayed - a.lastPlayed));
       setView('saves');
     } catch (e) {
       const localSlots = getLocalSlotsForWorld(worldId);
@@ -147,22 +138,37 @@ export function useWorldManager(
     if (!worldId) return;
     setIsLoadingMore(true);
     try {
-      const onlineSlots = await firebaseRef.current.loadWorldCharacters(worldId);
-      const localSlots = getLocalSlotsForWorld(worldId);
-      
-      const mergedSlots = [...onlineSlots];
-      localSlots.forEach(ls => {
-        if (!mergedSlots.find(os => os.id === ls.id)) {
-          mergedSlots.push({ ...ls, isLocalOnly: true });
-        }
+      const onlineSlots = await firebaseRef.current.loadWorldCharacters(worldId, 500);
+      setSlots(prevSlots => {
+        const localSlotsInState = prevSlots.filter(s => s.isLocalOnly);
+        const mergedSlots = [...onlineSlots];
+        localSlotsInState.forEach(ls => {
+          if (!mergedSlots.find(os => os.id === ls.id)) {
+            mergedSlots.push(ls);
+          }
+        });
+        return mergedSlots.sort((a, b) => b.lastPlayed - a.lastPlayed);
       });
-
-      setSlots(mergedSlots.sort((a, b) => b.lastPlayed - a.lastPlayed));
     } catch (e) {
       setNotification({ title: 'Lỗi', message: "Lỗi tải danh sách." });
     } finally {
       setIsLoadingMore(false);
     }
+  };
+
+  const handleLoadLocalCharacters = () => {
+    if (!worldId) return;
+    const localSlots = getLocalSlotsForWorld(worldId);
+    setSlots(prevSlots => {
+      const mergedSlots = [...prevSlots];
+      localSlots.forEach(ls => {
+        if (!mergedSlots.find(os => os.id === ls.id)) {
+          mergedSlots.push({ ...ls, isLocalOnly: true });
+        }
+      });
+      return mergedSlots.sort((a, b) => b.lastPlayed - a.lastPlayed);
+    });
+    setNotification({ title: 'Thành công', message: "Đã tải dữ liệu trình duyệt.", type: 'success' });
   };
 
   return {
@@ -180,6 +186,7 @@ export function useWorldManager(
     handlePreloadOnline,
     handleEnterOnline,
     handleLoadAllCharacters,
+    handleLoadLocalCharacters,
     getLocalSlotsForWorld
   };
 }

@@ -7,6 +7,7 @@ import { PROXY_PRESETS } from '../constants';
 export const GEMINI_MODELS = [
   { id: 'gemini-3.1-flash-lite-preview', name: 'Gemini 3.1 Flash Lite', desc: 'Siêu Nhanh - Khuyên dùng' },
   { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro', desc: 'Thông minh nhất' },
+  { id: 'gemini-3-flash-preview', name: 'Gemini 3.0 Flash', desc: 'Nhanh, thông minh' },
   { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', desc: 'Ổn định, cân bằng' },
   { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', desc: 'Mạnh mẽ, ổn định' }
 ];

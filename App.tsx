@@ -77,6 +77,7 @@ export default function App() {
   const [isAppInitializing, setIsAppInitializing] = useState(true);
   const [shopItems, setShopItems] = useState<InventoryItem[]>([]);
   const [notification, setNotification] = useState<{ title: string; message: string; type?: 'info' | 'warning' | 'success' | 'error' } | null>(null);
+  const [dismissedOfflineWarning, setDismissedOfflineWarning] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -119,6 +120,7 @@ export default function App() {
     handlePreloadOnline,
     handleEnterOnline,
     handleLoadAllCharacters,
+    handleLoadLocalCharacters,
     getLocalSlotsForWorld
   } = useWorldManager(firebaseRef, setNotification, setView, setSettings, settings);
 
@@ -1346,18 +1348,8 @@ export default function App() {
     }
   }, [settings?.theme?.customIcon]);
 
-  // Auto-sync slots khi vào view 'saves' + online
+  // Lưu lại view hiện tại vào session để khi reload sẽ mở đúng chỗ
   useEffect(() => {
-    if (view === 'saves' && appMode === 'online' && worldId) {
-      firebaseRef.current
-        .loadWorldCharacters(worldId)
-        .then((s) => {
-          if (s?.length > 0) setSlots(s);
-        })
-        .catch(console.warn);
-    }
-    
-    // Lưu lại view hiện tại vào session để khi reload sẽ mở đúng chỗ
     if (character && view !== 'setup') {
       firebaseRef.current.updateLastSessionView(view);
     }
@@ -1486,6 +1478,7 @@ export default function App() {
             setView('setup');
           }}
           onLoadAllCharacters={handleLoadAllCharacters}
+          onLoadLocalCharacters={handleLoadLocalCharacters}
           t={t}
         />
       );
@@ -1763,10 +1756,16 @@ export default function App() {
 
   return (
     <div className="relative w-full h-full">
-      {isOfflineMode && (
+      {isOfflineMode && !dismissedOfflineWarning && (
         <div className="fixed top-0 left-0 right-0 z-[150] bg-amber-500 text-white text-[10px] font-black py-1 px-4 flex items-center justify-center gap-2 shadow-md animate-in slide-in-from-top duration-300">
           <i className="fa-solid fa-triangle-exclamation animate-pulse"></i>
           <span>ĐANG Ở CHẾ ĐỘ NGOẠI TUYẾN - DỮ LIỆU SẼ ĐƯỢC ĐỒNG BỘ KHI CÓ MẠNG</span>
+          <button 
+            onClick={() => setDismissedOfflineWarning(true)}
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full hover:bg-amber-600 transition-colors"
+          >
+            <i className="fa-solid fa-xmark"></i>
+          </button>
         </div>
       )}
       {renderView()}

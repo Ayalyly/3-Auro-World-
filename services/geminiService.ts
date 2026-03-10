@@ -267,8 +267,9 @@ export class GeminiService {
   ): Promise<any> {
     let actualModelName = modelName || DEFAULT_MODEL; 
     
-    if (actualModelName === "auto-fast" || actualModelName === "gemini-3-flash-preview") actualModelName = "gemini-3.1-flash-lite-preview";
+    if (actualModelName === "auto-fast") actualModelName = "gemini-3.1-flash-lite-preview";
     else if (actualModelName === "auto-pro" || actualModelName === "gemini-3-pro-preview") actualModelName = "gemini-3.1-pro-preview";
+    else if (actualModelName === "gemini-3.0-flash") actualModelName = "gemini-3-flash-preview";
 
     if (this.isProxyModel(actualModelName)) {
         // Convert contents to string if it's complex, as proxyService.generateContent expects string prompt currently
@@ -352,8 +353,9 @@ export class GeminiService {
     signal?: AbortSignal
   ): AsyncGenerator<string> {
     let actualModelName = modelName || DEFAULT_MODEL;
-    if (actualModelName === "auto-fast" || actualModelName === "gemini-3-flash-preview") actualModelName = "gemini-3.1-flash-lite-preview";
+    if (actualModelName === "auto-fast") actualModelName = "gemini-3.1-flash-lite-preview";
     else if (actualModelName === "auto-pro" || actualModelName === "gemini-3-pro-preview") actualModelName = "gemini-3.1-pro-preview";
+    else if (actualModelName === "gemini-3.0-flash") actualModelName = "gemini-3-flash-preview";
 
     if (this.isGroqModel(actualModelName)) {
       const stream = this.generateGroqContentStream(actualModelName, contents, systemInstruction, maxTokens, temperature);
@@ -371,34 +373,45 @@ export class GeminiService {
       return;
     }
 
-    const ai = this.getClient();
-    const config: any = {
-      temperature: temperature,
-      maxOutputTokens: maxTokens
-    };
-    if (systemInstruction) {
-      config.systemInstruction = systemInstruction;
-    }
-    if (thinkingConfig) {
-      config.thinkingConfig = thinkingConfig;
-    }
+    const MAX_RETRIES = Math.max(10, this.apiKeys.length * 3);
+    const BASE_DELAY_MS = 300;
 
-    try {
-      const result = await ai.models.generateContentStream({
-        model: actualModelName,
-        contents,
-        config
-      });
-
-      for await (const chunk of result) {
-        if (signal?.aborted) break;
-        if (chunk.text) {
-          yield chunk.text;
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      try {
+        const ai = this.getClient();
+        const config: any = {
+          temperature: temperature,
+          maxOutputTokens: maxTokens
+        };
+        if (systemInstruction) {
+          config.systemInstruction = systemInstruction;
         }
+        if (thinkingConfig) {
+          config.thinkingConfig = thinkingConfig;
+        }
+
+        const result = await ai.models.generateContentStream({
+          model: actualModelName,
+          contents,
+          config
+        });
+
+        for await (const chunk of result) {
+          if (signal?.aborted) break;
+          if (chunk.text) {
+            yield chunk.text;
+          }
+        }
+        return; // Success, exit the retry loop
+      } catch (error: any) {
+        if (await this.handleApiError(error, attempt, MAX_RETRIES, BASE_DELAY_MS)) {
+          continue;
+        }
+        
+        console.error("Streaming Error:", error);
+        yield `\n[LỖI AI: ${this.getErrorMessage(error)}]`;
+        return;
       }
-    } catch (error: any) {
-      console.error("Streaming Error:", error);
-      yield `\n[LỖI AI: ${this.getErrorMessage(error)}]`;
     }
   }
 
@@ -413,7 +426,10 @@ export class GeminiService {
 
     const isInvalidKeyError = 
       errStr.includes("api key not valid") ||
-      errStr.includes("unauthenticated");
+      errStr.includes("invalid api key") ||
+      errStr.includes("unauthenticated") ||
+      errStr.includes("permission_denied") ||
+      errStr.includes("api key expired");
 
     if ((isQuotaError || isInvalidKeyError) && attempt < maxRetries - 1) {
       const failedKeyIdx = (this.currentKeyIndex - 1 + this.apiKeys.length) % this.apiKeys.length;
@@ -446,8 +462,8 @@ export class GeminiService {
 
   private getErrorMessage(error: any): string {
     const errStr = String(error).toLowerCase();
-    if (errStr.includes("api key not valid") || errStr.includes("unauthenticated")) {
-      return "❌ API Key không hợp lệ.";
+    if (errStr.includes("api key not valid") || errStr.includes("invalid api key") || errStr.includes("unauthenticated") || errStr.includes("permission_denied") || errStr.includes("api key expired")) {
+      return "❌ API Key không hợp lệ hoặc đã hết hạn.";
     }
     if (errStr.includes("429") || errStr.includes("quota") || errStr.includes("exhausted")) {
       return "❌ Key này đang bị Google giới hạn (sẽ tự hồi phục sau). Hãy thêm Key mới.";

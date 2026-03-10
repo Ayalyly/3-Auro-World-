@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FirebaseConfig } from '../types';
 import ServerSelectorModal from './ServerSelectorModal';
+import { MigrateTab } from './MigrateTab';
+import { PRESET_SERVERS } from '../constants/servers';
 
 interface WorldGateScreenProps { 
     onJoin: (id: string, mode: 'offline') => void; 
@@ -14,75 +16,6 @@ interface WorldGateScreenProps {
     setLanguage: (lang: 'vi' | 'en') => void;
     firebaseService: any;
 }
-
-const PRESET_SERVERS: Record<string, {name: string, config: FirebaseConfig}> = {
-    "server1": {
-        name: "Auro AI 1",
-        config: {
-            apiKey: "AIzaSyBJw02FDNmnlDBoPjh7CljX3E8KMzhXL44",
-            authDomain: "auro-ai-1-c3710.firebaseapp.com",
-            projectId: "auro-ai-1-c3710",
-            storageBucket: "auro-ai-1-c3710.firebasestorage.app",
-            messagingSenderId: "515585589603",
-            appId: "1:515585589603:web:c94581ab6908feed5c5356"
-        }
-    },
-    "server2": {
-        name: "Auro AI 2",
-        config: {
-            apiKey: "AIzaSyD2lO56x11tsGS-acOSRe94eiGerjDH8hY",
-            authDomain: "auro-thu.firebaseapp.com",
-            projectId: "auro-thu",
-            storageBucket: "auro-thu.firebasestorage.app",
-            messagingSenderId: "864522597969",
-            appId: "1:864522597969:web:76710d8711dbfd1a1d2a70"
-        }
-    },
-    "server3": {
-        name: "Auro AI 3",
-        config: {
-            apiKey: "AIzaSyA_hWmYdBhQhHSm4YwV5LiCET0gFUVgwvs",
-            authDomain: "aurokho-moi.firebaseapp.com",
-            projectId: "aurokho-moi",
-            storageBucket: "aurokho-moi.firebasestorage.app",
-            messagingSenderId: "598836069316",
-            appId: "1:598836069316:web:6aa350d0a9c0183b625a91"
-        }
-    },
-    "server4": {
-        name: "Auro AI 4",
-        config: {
-            apiKey: "AIzaSyCE-xyy9oaEJBZjxr-kJispt9pdXMZ26iU",
-            authDomain: "auro5-43d51.firebaseapp.com",
-            projectId: "auro5-43d51",
-            storageBucket: "auro5-43d51.firebasestorage.app",
-            messagingSenderId: "982047260647",
-            appId: "1:982047260647:web:67cd30cd58f0ff1bb30742"
-        }
-    },
-    "server5": {
-        name: "Auro AI 5",
-        config: {
-            apiKey: "AIzaSyDoQuI_Lsu1swcdbHuzPUu5NYlvkWbxz9M",
-            authDomain: "auro-vicgo.firebaseapp.com",
-            projectId: "auro-vicgo",
-            storageBucket: "auro-vicgo.firebasestorage.app",
-            messagingSenderId: "676346190015",
-            appId: "1:676346190015:web:b529c9eb6d219a89c7ce0a"
-        }
-    },
-    "server6": {
-        name: "Auro Leo",
-        config: {
-            apiKey: "AIzaSyBxIHLsoePeKNYd_2xC9FNXivRLN7B_lwQ",
-            authDomain: "auroleo-e5868.firebaseapp.com",
-            projectId: "auroleo-e5868",
-            storageBucket: "auroleo-e5868.firebasestorage.app",
-            messagingSenderId: "295564825495",
-            appId: "1:295564825495:web:1f898450a47747a46aaad2"
-        }
-    }
-};
 
 const WorldGateScreen: React.FC<WorldGateScreenProps> = ({ 
     onJoin, onPreloadOnlineWorld, onEnterOnlineWorld, onImport, isLoading, status, t, currentLang, setLanguage, firebaseService 
@@ -108,22 +41,6 @@ const WorldGateScreen: React.FC<WorldGateScreenProps> = ({
     const [recoveryPhase, setRecoveryPhase] = useState<'idle' | 'loading' | 'ready' | 'error' | 'success'>('idle');
     const [recoveryError, setRecoveryError] = useState('');
     const [recoveredPin, setRecoveredPin] = useState('');
-
-    // Migrate States
-    const [migrateSourceServerKey, setMigrateSourceServerKey] = useState<string>('current_cache');
-    const [migrateSourceConfigInput, setMigrateSourceConfigInput] = useState('');
-    const [migrateDestServerKey, setMigrateDestServerKey] = useState<string>('custom');
-    const [migrateDestConfigInput, setMigrateDestConfigInput] = useState('');
-    const [showSourceServerModal, setShowSourceServerModal] = useState(false);
-    const [showDestServerModal, setShowDestServerModal] = useState(false);
-    const [migrateSourceWorldId, setMigrateSourceWorldId] = useState('');
-    const [migrateSourcePinCode, setMigrateSourcePinCode] = useState('');
-    const [migrateDestWorldId, setMigrateDestWorldId] = useState('');
-    const [migrateDestPinCode, setMigrateDestPinCode] = useState('');
-    const [migratePhase, setMigratePhase] = useState<'idle' | 'migrating' | 'success' | 'error'>('idle');
-    const [migrateProgress, setMigrateProgress] = useState('');
-    const [migrateError, setMigrateError] = useState('');
-    const [showMigrateTips, setShowMigrateTips] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -231,83 +148,6 @@ const WorldGateScreen: React.FC<WorldGateScreenProps> = ({
         } catch (e: any) {
             setRecoveryPhase('error');
             setRecoveryError(e.message || "Lỗi khi tải dữ liệu khôi phục.");
-        }
-    };
-
-    const handleMigrate = async () => {
-        if (!migrateSourceWorldId.trim()) { setMigrateError("Vui lòng nhập Tên Tài Khoản NGUỒN."); return; }
-        if (migrateSourceServerKey !== 'current_cache' && (!migrateSourcePinCode.trim() || migrateSourcePinCode.length !== 4)) { setMigrateError("Vui lòng nhập Mật Khẩu NGUỒN (4 số)."); return; }
-        if (!migrateDestWorldId.trim()) { setMigrateError("Vui lòng nhập Tên Tài Khoản ĐÍCH."); return; }
-        if (!migrateDestPinCode.trim() || migrateDestPinCode.length !== 4) { setMigrateError("Vui lòng nhập Mật Khẩu ĐÍCH (4 số)."); return; }
-        
-        // 1. Get Source Config
-        let sourceConf: FirebaseConfig | null = null;
-        let sourceName = "";
-        if (migrateSourceServerKey !== 'current_cache') {
-            if (migrateSourceServerKey === 'custom') {
-                sourceConf = parseFirebaseConfig(migrateSourceConfigInput);
-                sourceName = "Server Riêng (Nguồn)";
-            } else {
-                sourceConf = PRESET_SERVERS[migrateSourceServerKey].config;
-                sourceName = PRESET_SERVERS[migrateSourceServerKey].name;
-            }
-            if (!sourceConf) { setMigrateError("Vui lòng chọn máy chủ nguồn hợp lệ."); return; }
-        }
-
-        // 2. Get Dest Config
-        let destConf: FirebaseConfig | null = null;
-        let destName = "";
-        if (migrateDestServerKey === 'custom') {
-            destConf = parseFirebaseConfig(migrateDestConfigInput);
-            destName = "Server Riêng (Đích)";
-        } else {
-            destConf = PRESET_SERVERS[migrateDestServerKey].config;
-            destName = PRESET_SERVERS[migrateDestServerKey].name;
-        }
-        if (!destConf) { setMigrateError("Vui lòng chọn máy chủ đích hợp lệ."); return; }
-
-        // 3. Check if same
-        if (migrateSourceServerKey !== 'current_cache' && JSON.stringify(sourceConf) === JSON.stringify(destConf) && migrateSourceWorldId === migrateDestWorldId) {
-            setMigrateError("Không thể đồng bộ vào chính nó (Cùng Server & Cùng ID).");
-            return;
-        }
-
-        setMigratePhase('migrating');
-        setMigrateError('');
-        setMigrateProgress('Bắt đầu quá trình đồng bộ...');
-
-        try {
-            if (migrateSourceServerKey === 'current_cache') {
-                await firebaseService.migrateFromLocal(
-                    destConf,
-                    migrateSourceWorldId,
-                    migrateDestWorldId,
-                    migrateDestPinCode,
-                    (msg: string) => setMigrateProgress(msg)
-                );
-            } else {
-                await firebaseService.migrateWorld(
-                    sourceConf!,
-                    sourceName,
-                    destConf,
-                    migrateSourceWorldId,
-                    migrateSourcePinCode,
-                    migrateDestWorldId,
-                    migrateDestPinCode,
-                    (msg: string) => setMigrateProgress(msg)
-                );
-            }
-            setMigratePhase('success');
-            // Sau khi thành công, tự động điền thông tin vào tab Online
-            setSelectedServerKey(migrateDestServerKey);
-            if (migrateDestServerKey === 'custom') {
-                setConfigInput(migrateDestConfigInput);
-            }
-            setOnlineWorldId(migrateDestWorldId);
-            setPinCode(migrateDestPinCode);
-        } catch (e: any) {
-            setMigratePhase('error');
-            setMigrateError(e.message || "Lỗi đồng bộ không xác định.");
         }
     };
 
@@ -589,277 +429,18 @@ const WorldGateScreen: React.FC<WorldGateScreenProps> = ({
                             </div>
                         )}
                         {activeTab === 'migrate' && (
-                            <div className="animate-in fade-in slide-in-from-right-4 space-y-4 py-2">
-                                <div className="text-center mb-2">
-                                    <h3 className="text-xs font-black text-blue-500 uppercase tracking-widest bg-blue-50 inline-block px-3 py-1 rounded-full border border-blue-100">Đồng Bộ Dữ Liệu</h3>
-                                </div>
-                                <div className="bg-blue-50/80 p-3 rounded-2xl border border-blue-200">
-                                    <p className="text-[10px] text-blue-800 font-bold leading-relaxed">
-                                        <i className="fa-solid fa-circle-info mr-1 text-blue-500"></i>
-                                        Chuyển toàn bộ nhân vật và tin nhắn từ máy chủ cũ sang Server Riêng của bạn.
-                                    </p>
-                                </div>
-
-                                {migratePhase === 'idle' || migratePhase === 'error' ? (
-                                    <div className="space-y-4">
-                                        <div className="bg-blue-50/80 p-3 rounded-2xl border border-blue-200">
-                                            <p className="text-[10px] text-blue-800 font-bold leading-relaxed">
-                                                <i className="fa-solid fa-circle-info mr-1 text-blue-500"></i>
-                                                Lưu ý: Dữ liệu ở máy chủ cũ sẽ được <span className="text-blue-600 font-black underline">GIỮ NGUYÊN</span>. Quá trình này chỉ sao chép toàn bộ cư dân sang máy chủ mới.
-                                            </p>
-                                        </div>
-
-                                        <div className="space-y-2">
-                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider ml-1">1. Chọn máy chủ NGUỒN (Cũ)</p>
-                                            <div className="bg-white p-3 rounded-2xl border border-slate-100 cursor-pointer hover:border-blue-200 transition-all group" onClick={() => setShowSourceServerModal(true)}>
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-10 h-10 rounded-xl bg-slate-50 text-slate-500 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
-                                                            {migrateSourceServerKey === 'current_cache' ? '💾' : (migrateSourceServerKey === 'custom' ? '🛡️' : '☁️')}
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-xs font-black text-slate-800 uppercase">
-                                                                {migrateSourceServerKey === 'current_cache' ? 'Dữ liệu hiện tại (Trình duyệt)' : (migrateSourceServerKey === 'custom' ? 'Server Riêng' : PRESET_SERVERS[migrateSourceServerKey]?.name || 'Unknown')}
-                                                            </p>
-                                                            {migrateSourceServerKey === 'current_cache' && (
-                                                                <p className="text-[9px] text-emerald-600 font-bold italic">Lấy dữ liệu đang lưu tạm trong máy bạn</p>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                    <i className="fa-solid fa-chevron-down text-slate-300 group-hover:text-blue-400"></i>
-                                                </div>
-                                            </div>
-                                            {migrateSourceServerKey === 'custom' && (
-                                                <textarea 
-                                                    className="w-full h-20 bg-[#1e1e2e] text-emerald-400 font-mono text-[9px] p-3 rounded-xl border border-slate-300 focus:border-blue-500 outline-none resize-none custom-scrollbar leading-relaxed shadow-inner placeholder:text-slate-600"
-                                                    placeholder={`Dán firebaseConfig của máy chủ NGUỒN vào đây...`}
-                                                    value={migrateSourceConfigInput}
-                                                    onChange={e => setMigrateSourceConfigInput(e.target.value)}
-                                                    spellCheck={false}
-                                                />
-                                            )}
-                                        </div>
-
-                                        <div className="flex justify-center py-1">
-                                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 shadow-sm border border-blue-200">
-                                                <i className="fa-solid fa-arrow-down"></i>
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-2">
-                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider ml-1">2. Chọn máy chủ ĐÍCH (Mới)</p>
-                                            <div className="bg-white p-3 rounded-2xl border border-slate-100 cursor-pointer hover:border-blue-200 transition-all group" onClick={() => setShowDestServerModal(true)}>
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-10 h-10 rounded-xl bg-slate-50 text-slate-500 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
-                                                            {migrateDestServerKey === 'custom' ? '🛡️' : '☁️'}
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-xs font-black text-slate-800 uppercase">
-                                                                {migrateDestServerKey === 'custom' ? 'Server Riêng' : PRESET_SERVERS[migrateDestServerKey]?.name || 'Unknown'}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <i className="fa-solid fa-chevron-down text-slate-300 group-hover:text-blue-400"></i>
-                                                </div>
-                                            </div>
-                                            {migrateDestServerKey === 'custom' && (
-                                                <textarea 
-                                                    className="w-full h-20 bg-[#1e1e2e] text-emerald-400 font-mono text-[9px] p-3 rounded-xl border border-slate-300 focus:border-blue-500 outline-none resize-none custom-scrollbar leading-relaxed shadow-inner placeholder:text-slate-600"
-                                                    placeholder={`Dán firebaseConfig của máy chủ ĐÍCH vào đây...`}
-                                                    value={migrateDestConfigInput}
-                                                    onChange={e => setMigrateDestConfigInput(e.target.value)}
-                                                    spellCheck={false}
-                                                />
-                                            )}
-                                        </div>
-
-                                        <ServerSelectorModal
-                                            isOpen={showSourceServerModal}
-                                            onClose={() => setShowSourceServerModal(false)}
-                                            servers={[
-                                                { key: 'current_cache', name: 'Dữ liệu hiện tại (Trình duyệt)', emoji: '💾', config: {} as any },
-                                                ...Object.entries(PRESET_SERVERS).map(([key, val]) => ({
-                                                    key, name: val.name, emoji: '☁️', config: val.config,
-                                                }))
-                                            ]}
-                                            selectedServerKey={migrateSourceServerKey}
-                                            onSelectServer={(key) => {
-                                                setMigrateSourceServerKey(key);
-                                                setShowSourceServerModal(false);
-                                            }}
-                                            firebaseService={firebaseService}
-                                        />
-
-                                        <ServerSelectorModal
-                                            isOpen={showDestServerModal}
-                                            onClose={() => setShowDestServerModal(false)}
-                                            servers={Object.entries(PRESET_SERVERS).map(([key, val]) => ({
-                                                key, name: val.name, emoji: '☁️', config: val.config,
-                                            }))}
-                                            selectedServerKey={migrateDestServerKey}
-                                            onSelectServer={(key) => {
-                                                setMigrateDestServerKey(key);
-                                                setShowDestServerModal(false);
-                                            }}
-                                            firebaseService={firebaseService}
-                                        />
-
-                                        <div className="space-y-4">
-                                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
-                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                                    <span className="w-5 h-5 bg-slate-200 rounded-full flex items-center justify-center text-[8px] text-slate-500">1</span>
-                                                    Tài khoản Nguồn (Cũ)
-                                                </p>
-                                                <div className="space-y-2">
-                                                    <div className="relative group">
-                                                        <div className="relative bg-white rounded-xl flex items-center p-1 border border-slate-200">
-                                                            <div className="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 shrink-0">
-                                                                <i className="fa-solid fa-user text-sm"></i>
-                                                            </div>
-                                                            <input 
-                                                                type="text" 
-                                                                value={migrateSourceWorldId} 
-                                                                onChange={(e) => setMigrateSourceWorldId(e.target.value)} 
-                                                                placeholder="Tên tài khoản cũ" 
-                                                                className="w-full h-full px-3 outline-none text-[11px] font-black text-slate-700 bg-transparent placeholder:text-slate-300 placeholder:font-normal uppercase tracking-widest" 
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                    {migrateSourceServerKey !== 'current_cache' && (
-                                                        <div className="relative group">
-                                                            <div className="relative bg-white rounded-xl flex items-center p-1 border border-slate-200">
-                                                                <div className="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 shrink-0">
-                                                                    <i className="fa-solid fa-lock text-sm"></i>
-                                                                </div>
-                                                                <input 
-                                                                    type={showPin ? "text" : "password"} 
-                                                                    value={migrateSourcePinCode} 
-                                                                    onChange={(e) => setMigrateSourcePinCode(e.target.value.replace(/\D/g, '').slice(0, 4))} 
-                                                                    placeholder="Mật khẩu cũ (4 số)" 
-                                                                    className="w-full h-full px-3 outline-none text-[11px] font-black text-slate-700 bg-transparent placeholder:text-slate-300 placeholder:font-normal tracking-[0.3em]" 
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            <div className="flex justify-center -my-2 relative z-10">
-                                                <div className="w-8 h-8 bg-white rounded-full border border-slate-200 flex items-center justify-center text-indigo-500 shadow-sm">
-                                                    <i className="fa-solid fa-arrow-down"></i>
-                                                </div>
-                                            </div>
-
-                                            <div className="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100 space-y-3">
-                                                <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-2">
-                                                    <span className="w-5 h-5 bg-indigo-100 rounded-full flex items-center justify-center text-[8px] text-indigo-500">2</span>
-                                                    Tài khoản Đích (Mới)
-                                                </p>
-                                                <div className="space-y-2">
-                                                    <div className="relative group">
-                                                        <div className="relative bg-white rounded-xl flex items-center p-1 border border-slate-200">
-                                                            <div className="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 shrink-0">
-                                                                <i className="fa-solid fa-user-plus text-sm"></i>
-                                                            </div>
-                                                            <input 
-                                                                type="text" 
-                                                                value={migrateDestWorldId} 
-                                                                onChange={(e) => setMigrateDestWorldId(e.target.value)} 
-                                                                placeholder="Tên tài khoản mới" 
-                                                                className="w-full h-full px-3 outline-none text-[11px] font-black text-slate-700 bg-transparent placeholder:text-slate-300 placeholder:font-normal uppercase tracking-widest" 
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                    <div className="relative group">
-                                                        <div className="relative bg-white rounded-xl flex items-center p-1 border border-slate-200">
-                                                            <div className="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 shrink-0">
-                                                                <i className="fa-solid fa-key text-sm"></i>
-                                                            </div>
-                                                            <input 
-                                                                type={showPin ? "text" : "password"} 
-                                                                value={migrateDestPinCode} 
-                                                                onChange={(e) => setMigrateDestPinCode(e.target.value.replace(/\D/g, '').slice(0, 4))} 
-                                                                placeholder="Mật khẩu mới (4 số)" 
-                                                                className="w-full h-full px-3 outline-none text-[11px] font-black text-slate-700 bg-transparent placeholder:text-slate-300 placeholder:font-normal tracking-[0.3em]" 
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {migrateError && (
-                                            <div className="bg-rose-50 text-rose-600 p-3 rounded-xl text-[10px] font-medium border border-rose-100 flex items-start gap-2 animate-in slide-in-from-top-2">
-                                                <i className="fa-solid fa-circle-exclamation mt-0.5"></i>
-                                                <span>{migrateError}</span>
-                                            </div>
-                                        )}
-
-                                        <button onClick={handleMigrate} disabled={!migrateSourceWorldId.trim() || !migrateDestWorldId.trim() || migrateDestPinCode.length !== 4 || (migrateSourceServerKey === 'custom' && !migrateSourceConfigInput.trim()) || (migrateDestServerKey === 'custom' && !migrateDestConfigInput.trim())} className="w-full py-4 mt-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:scale-100 disabled:shadow-none flex items-center justify-center gap-2">
-                                            <i className="fa-solid fa-cloud-arrow-up"></i> Bắt đầu đồng bộ
-                                        </button>
-
-                                        <div className="mt-6 border-t border-slate-200 pt-4">
-                                            <button 
-                                                onClick={() => setShowMigrateTips(!showMigrateTips)}
-                                                className="w-full flex items-center justify-between group"
-                                            >
-                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-indigo-400 transition-colors">💡 Mẹo & Trường hợp sử dụng</p>
-                                                <i className={`fa-solid fa-chevron-${showMigrateTips ? 'up' : 'down'} text-[10px] text-slate-300 group-hover:text-indigo-400 transition-all`}></i>
-                                            </button>
-                                            
-                                            {showMigrateTips && (
-                                                <div className="grid grid-cols-1 gap-2 mt-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                                                    <div className="bg-white/50 p-3 rounded-xl border border-slate-200">
-                                                        <p className="text-[10px] font-bold text-slate-700 mb-1">🚀 Giải cứu khi Server kẹt (Quota Exceeded)</p>
-                                                        <p className="text-[9px] text-slate-500 leading-relaxed">Nếu máy chủ cũ bị báo "Quá tải", hãy chọn nguồn là máy chủ đó. Hệ thống sẽ tự động dùng dữ liệu đã lưu trong trình duyệt của bạn để chuyển sang máy chủ mới mà không cần chờ máy chủ cũ hồi phục.</p>
-                                                    </div>
-                                                    <div className="bg-white/50 p-3 rounded-xl border border-slate-200">
-                                                        <p className="text-[10px] font-bold text-slate-700 mb-1">💾 Đồng bộ dữ liệu Offline lên Online</p>
-                                                        <p className="text-[9px] text-slate-500 leading-relaxed">Chọn nguồn là "Dữ liệu hiện tại" để đẩy toàn bộ tiến trình bạn vừa chơi (đang lưu tạm trong máy) lên một máy chủ mới để lưu trữ vĩnh viễn.</p>
-                                                    </div>
-                                                    <div className="bg-white/50 p-3 rounded-xl border border-slate-200">
-                                                        <p className="text-[10px] font-bold text-slate-700 mb-1">💾 Khi nào dùng "Dữ liệu trình duyệt"?</p>
-                                                        <p className="text-[9px] text-slate-500 leading-relaxed">Dùng khi bạn đang chơi ở tab Online nhưng máy chủ bị kẹt. Chọn nguồn này để app lấy mớ dữ liệu "đang chơi dở" trong máy bạn và đẩy sang nhà mới.</p>
-                                                    </div>
-                                                    <div className="bg-white/50 p-3 rounded-xl border border-slate-200">
-                                                        <p className="text-[10px] font-bold text-slate-700 mb-1">🛡️ Di cư sang Server Riêng</p>
-                                                        <p className="text-[9px] text-slate-500 leading-relaxed">Dùng khi bạn muốn bảo mật tuyệt đối hoặc không muốn phụ thuộc vào máy chủ công cộng. Dữ liệu sẽ được sao chép y hệt sang Firebase cá nhân của bạn.</p>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                ) : migratePhase === 'migrating' ? (
-                                    <div className="py-10 flex flex-col items-center text-center space-y-4">
-                                        <div className="relative">
-                                            <div className="w-16 h-16 border-4 border-blue-100 border-t-blue-500 rounded-full animate-spin"></div>
-                                            <div className="absolute inset-0 flex items-center justify-center text-blue-500">
-                                                <i className="fa-solid fa-cloud-arrow-up text-xl animate-pulse"></i>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <p className="text-xs font-black text-slate-700 uppercase tracking-widest mb-1">Đang đồng bộ dữ liệu</p>
-                                            <p className="text-[10px] text-slate-500 font-medium">{migrateProgress}</p>
-                                        </div>
-                                        <p className="text-[9px] text-rose-500 font-bold italic mt-4">Vui lòng không đóng cửa sổ này!</p>
-                                    </div>
-                                ) : (
-                                    <div className="py-8 flex flex-col items-center text-center space-y-4">
-                                        <div className="w-16 h-16 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center text-3xl shadow-inner">
-                                            <i className="fa-solid fa-check"></i>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-black text-slate-800 uppercase tracking-widest mb-1">Đồng bộ thành công!</p>
-                                            <p className="text-[10px] text-slate-500 font-medium">Toàn bộ dữ liệu đã được chuyển sang Server Riêng.</p>
-                                        </div>
-                                        <button onClick={() => { setMigratePhase('idle'); setActiveTab('online'); }} className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-black uppercase text-[10px] tracking-widest transition-colors mt-4">
-                                            Quay lại Đăng Nhập
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
+                            <MigrateTab 
+                                firebaseService={firebaseService} 
+                                onSuccess={(serverKey, configInput, worldId, pinCode) => {
+                                    setActiveTab('online');
+                                    setSelectedServerKey(serverKey);
+                                    if (serverKey === 'custom') {
+                                        setConfigInput(configInput);
+                                    }
+                                    setOnlineWorldId(worldId);
+                                    setPinCode(pinCode);
+                                }} 
+                            />
                         )}
                     </div>
                 </div>

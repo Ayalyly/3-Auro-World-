@@ -28,7 +28,7 @@ import { getWorldContextPrompt, getWorldSettingPrompt, getSocialMemoryPrompt, ge
 import { getLegacyContentPrompt, getRandomPostPrompt } from './prompts/socialPrompt';
 import { getSingleReactionToPostPrompt, getSingleReactionToCommentPrompt, getMassReactionsToCommentPrompt } from './prompts/reactionPrompt';
 import { getDiaryEntryPrompt, getParseCharacterDocumentPrompt, getAnalyzeImagePrompt } from './prompts/characterDataPrompt';
-import { getDonationVerificationPrompt } from './prompts/miscPrompt';
+import { getDonationVerificationPrompt, getGachaRewardPrompt } from './prompts/miscPrompt';
 
 export class GeminiService {
   public apiKeys: ApiKeyData[] = [];
@@ -997,6 +997,33 @@ ${existingMemories.map(m => `- ${m}`).join('\n')}
   // ================================================================
   // DONATION VERIFICATION
   // ================================================================
+  public async generateGachaReward(character: Character, rewardType: string): Promise<any> {
+    const prompt = getGachaRewardPrompt(character.name, character.prompt || "", rewardType);
+    const client = this.getClient();
+
+    try {
+      const response = await client.models.generateContent({
+        model: DEFAULT_MODEL,
+        contents: [{ parts: [{ text: prompt }] }],
+        config: {
+          responseMimeType: "application/json"
+        }
+      });
+      
+      const cleanJson = this.cleanJsonString(response.text || "{}");
+      return JSON.parse(cleanJson);
+    } catch (error) {
+      console.error("Error generating Gacha reward:", error);
+      // Fallback
+      return {
+        type: rewardType,
+        name: "Món quà bí ẩn",
+        description: "Một món quà từ thế giới Auro.",
+        icon: "🎁"
+      };
+    }
+  }
+
   public async verifyDonation(imageFile: File, expectedAmount: number, expectedCode: string): Promise<{ success: boolean; message: string }> {
     try {
         const base64Image = await new Promise<string>((resolve, reject) => {

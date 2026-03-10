@@ -385,6 +385,7 @@ export type AppView =
   | 'contact_detail'
   | 'home'
   | 'quests'
+  | 'gacha'
   | 'memories';
 
 export interface PromptPreset {

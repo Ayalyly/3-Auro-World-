@@ -12,7 +12,7 @@ export const getLegacyContentPrompt = (
 - Xung đột: ${loreAnalysis.mainConflict || "Chưa rõ"}
 
 [YÊU CẦU QUAN TRỌNG]:
-1. BẮT BUỘC trả lời bằng ngôn ngữ: ${language.toUpperCase()}.
+1. BẮT BUỘC trả lời bằng ngôn ngữ: ${language.toUpperCase()}. NẾU NGÔN NGỮ LÀ 'TIẾNG VIỆT', BẠN PHẢI TRẢ LỜI BẰNG TIẾNG VIỆT. TUYỆT ĐỐI KHÔNG SỬ DỤNG TIẾNG ANH HOẶC BẤT KỲ NGÔN NGỮ NÀO KHÁC TRỪ KHI NGƯỜI DÙNG YÊU CẦU RÕ RÀNG.
 2. Nội dung phải phù hợp chặt chẽ với Thể loại.
 3. TUYỆT ĐỐI KHÔNG dùng hành động (*...*), không suy nghĩ ([]). Chỉ viết nội dung status.
 4. NẾU là Hiện đại: Dùng ngôn ngữ đời thường, mạng xã hội (Facebook/Instagram vibe).
@@ -39,7 +39,7 @@ Thể loại: ${status || "Hiện đại"};
 ${chatContext ? `[BỐI CẢNH CHAT GẦN ĐÂY]:\n${chatContext}\n` : ""}
 
 [YÊU CẦU QUAN TRỌNG]:
-1. BẮT BUỘC trả lời bằng ngôn ngữ: ${language.toUpperCase()}.
+1. BẮT BUỘC trả lời bằng ngôn ngữ: ${language.toUpperCase()}. NẾU NGÔN NGỮ LÀ 'TIẾNG VIỆT', BẠN PHẢI TRẢ LỜI BẰNG TIẾNG VIỆT. TUYỆT ĐỐI KHÔNG SỬ DỤNG TIẾNG ANH HOẶC BẤT KỲ NGÔN NGỮ NÀO KHÁC TRỪ KHI NGƯỜI DÙNG YÊU CẦU RÕ RÀNG.
 2. Viết 1–3 đoạn ngắn, có cảm xúc (vui/buồn/giận/triết lý).
 3. TUYỆT ĐỐI KHÔNG dùng hành động (*...*), không suy nghĩ ([]). Chỉ viết nội dung status.
 4. Có thể nhắc đến những gì vừa xảy ra trong chat context nếu thấy phù hợp.

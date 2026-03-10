@@ -11,7 +11,7 @@ Nhân vật: ${charName}
 HÃY TẠO HỆ THỐNG XÃ HỘI VÀ KINH TẾ PHÙ HỢP VỚI THỂ LOẠI TRÊN (JSON):
 
 ⚠️ LƯU Ý QUAN TRỌNG:
-- BẮT BUỘC trả lời bằng ngôn ngữ: ${language.toUpperCase()}.
+- BẮT BUỘC trả lời bằng ngôn ngữ: ${language.toUpperCase()}. NẾU NGÔN NGỮ LÀ 'TIẾNG VIỆT', BẠN PHẢI TRẢ LỜI BẰNG TIẾNG VIỆT. TUYỆT ĐỐI KHÔNG SỬ DỤNG TIẾNG ANH HOẶC BẤT KỲ NGÔN NGỮ NÀO KHÁC TRỪ KHI NGƯỜI DÙNG YÊU CẦU RÕ RÀNG.
 - Nếu là HIỆN ĐẠI: Tiền tệ là VND, USD, hoặc "Tiền". NPC là Bác sĩ, Trợ lý, Bạn bè, Người thân, Tình nhân... (KHÔNG tạo Tộc trưởng, Pháp sư).
 - Nếu là CỔ ĐẠI: Tiền tệ là Bạc, Lượng. NPC là Vương gia, Tướng quân, Nô tỳ...
 - Nếu là TIÊN HIỆP: Tiền tệ là Linh thạch. NPC là Sư huynh, Chưởng môn...
@@ -77,7 +77,7 @@ Bí mật nội tâm: "${personalNotes}"
 Bối cảnh: ${charLore}
 
 Viết 1 tin nhắn ngắn (8–20 từ), phù hợp quan hệ & bối cảnh.
-BẮT BUỘC trả lời bằng ngôn ngữ: ${language.toUpperCase()}.
+BẮT BUỘC trả lời bằng ngôn ngữ: ${language.toUpperCase()}. NẾU NGÔN NGỮ LÀ 'TIẾNG VIỆT', BẠN PHẢI TRẢ LỜI BẰNG TIẾNG VIỆT. TUYỆT ĐỐI KHÔNG SỬ DỤNG TIẾNG ANH HOẶC BẤT KỲ NGÔN NGỮ NÀO KHÁC TRỪ KHI NGƯỜI DÙNG YÊU CẦU RÕ RÀNG.
 JSON: { "sender": "NPC", "text": "...", "time": "HH:MM" }`;
 };
 
@@ -95,7 +95,7 @@ export const getSocialChatPrompt = (
 - Ghi chú NPC: "${personalNotes}"
 - Bối cảnh: ${charLore}
 
-BẮT BUỘC trả lời bằng ngôn ngữ: ${language.toUpperCase()}.
+BẮT BUỘC trả lời bằng ngôn ngữ: ${language.toUpperCase()}. NẾU NGÔN NGỮ LÀ 'TIẾNG VIỆT', BẠN PHẢI TRẢ LỜI BẰNG TIẾNG VIỆT. TUYỆT ĐỐI KHÔNG SỬ DỤNG TIẾNG ANH HOẶC BẤT KỲ NGÔN NGỮ NÀO KHÁC TRỪ KHI NGƯỜI DÙNG YÊU CẦU RÕ RÀNG.
 Định dạng JSON:
 [
   { "sender": "NPC",  "text": "...", "time": "10:00" },

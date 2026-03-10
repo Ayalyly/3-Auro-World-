@@ -82,6 +82,12 @@ const MainMenu: React.FC<MainMenuProps> = ({ menuRef, onClose, onNavigate, onSho
             <span className="text-[9px] font-black uppercase text-slate-500 group-hover:text-emerald-500">Túi đồ</span>
           </button>
 
+          {/* GACHA */}
+          {/* <button onClick={() => handleMenuClick('gacha')} className="flex flex-col items-center gap-2 group p-2 rounded-2xl hover:bg-yellow-50 transition-colors active:scale-95 border border-transparent hover:border-yellow-100">
+            <div className="w-12 h-12 bg-gradient-to-br from-yellow-50 to-white text-yellow-500 rounded-xl flex items-center justify-center text-xl shadow-sm border border-yellow-100 group-hover:scale-110 transition-transform"><i className="fa-solid fa-circle-notch animate-spin-slow"></i></div>
+            <span className="text-[9px] font-black uppercase text-slate-500 group-hover:text-yellow-600">Gacha</span>
+          </button> */}
+
           {/* SETTINGS */}
           <button onClick={() => handleMenuClick('settings')} className="flex flex-col items-center gap-2 group p-2 rounded-2xl hover:bg-slate-100 transition-colors active:scale-95 border border-transparent hover:border-slate-200">
             <div className="w-12 h-12 bg-gradient-to-br from-slate-100 to-white text-slate-500 rounded-xl flex items-center justify-center text-xl shadow-sm border border-slate-200 group-hover:scale-110 transition-transform"><i className="fa-solid fa-gear"></i></div>

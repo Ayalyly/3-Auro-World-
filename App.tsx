@@ -26,6 +26,7 @@ import ShopView from './components/ShopView';
 import RealisticPhoneView from './components/RealisticPhoneView';
 import SocialAppView from './components/SocialAppView';
 import InventoryView from './components/InventoryView';
+import GachaView from './components/GachaView';
 import CharacterCard from './components/CharacterCard';
 import AuroCardView from './components/AuroCardView';
 import WorldGateScreen from './components/WorldGateScreen';
@@ -1631,6 +1632,28 @@ export default function App() {
             onDeleteItem={handleDeleteItem}
             onGiftItem={handleGiftItem}
             onClose={() => setView('chat')}
+          />
+        </OverlayWrapper>
+      );
+
+    if (view === 'gacha' && character)
+      return (
+        <OverlayWrapper>
+          <GachaView
+            user={user}
+            character={character}
+            geminiService={geminiRef.current}
+            onUpdateUser={(u) => {
+              const updatedUser = { ...user, ...u };
+              setUser(updatedUser);
+            }}
+            onUpdateCharacter={(id, char) => {
+              const updatedChar = { ...character, ...char };
+              setCharacter(updatedChar);
+            }}
+            onAddMessage={(msg) => handleSendMessage(msg.text)}
+            onBack={() => setView('chat')}
+            onNavigate={setView}
           />
         </OverlayWrapper>
       );

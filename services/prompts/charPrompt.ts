@@ -70,7 +70,7 @@ export const getCharSystemPrompt = (
     : "- [NHẬP VAI TỰ DO]: Cho phép các nội dung nhập vai trưởng thành, lãng mạn sâu sắc hoặc bạo lực nếu phù hợp với cốt truyện và bối cảnh nhân vật.";
 
   const targetLang = character.language || (settings?.language === 'en' ? 'English' : 'Tiếng Việt');
-  const languageRule = `- [LANGUAGE]: BẮT BUỘC phản hồi bằng ngôn ngữ: ${targetLang.toUpperCase()}. Tuyệt đối không sử dụng ngôn ngữ khác trừ khi được yêu cầu rõ ràng.`;
+  const languageRule = `- [LANGUAGE]: BẮT BUỘC phản hồi bằng ngôn ngữ: ${targetLang.toUpperCase()}. NẾU NGÔN NGỮ LÀ 'TIẾNG VIỆT', BẠN PHẢI TRẢ LỜI BẰNG TIẾNG VIỆT. TUYỆT ĐỐI KHÔNG SỬ DỤNG TIẾNG ANH HOẶC BẤT KỲ NGÔN NGỮ NÀO KHÁC TRỪ KHI NGƯỜI DÙNG YÊU CẦU RÕ RÀNG.`;
 
   const completionRule = `- [HOÀN TẤT CÂU TRẢ LỜI]: BẮT BUỘC phải kết thúc câu trả lời một cách trọn vẹn và tự nhiên trong phạm vi giới hạn độ dài (${maxTokens} tokens). Không được để câu trả lời bị cắt ngang giữa chừng hoặc dở dang.`;
 

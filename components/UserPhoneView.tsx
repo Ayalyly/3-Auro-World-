@@ -41,7 +41,7 @@ const UserPhoneView: React.FC<UserPhoneProps> = ({ user, onUpdateUser, onClose, 
         rate: 1, 
         voiceURI: '', 
         useGeminiTTS: false, 
-        useHuggingFaceTTS: true,
+        useHuggingFaceTTS: false,
         geminiVoice: 'Kore', 
         hfApiKey: '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',
       hfModel: 'facebook/mms-tts-vie',
@@ -51,7 +51,8 @@ const UserPhoneView: React.FC<UserPhoneProps> = ({ user, onUpdateUser, onClose, 
         videoScale: 1.5,
         youtubeNotes: {} as Record<string, string>
     };
-    return saved ? { ...defaultSettings, ...JSON.parse(saved) } : defaultSettings;
+    const parsed = saved ? JSON.parse(saved) : {};
+    return { ...defaultSettings, ...parsed, useGeminiTTS: false, useHuggingFaceTTS: false };
   });
   const [newYoutubeLink, setNewYoutubeLink] = React.useState('');
   const [newYoutubeNote, setNewYoutubeNote] = React.useState('');
@@ -281,10 +282,15 @@ const UserPhoneView: React.FC<UserPhoneProps> = ({ user, onUpdateUser, onClose, 
   React.useEffect(() => {
     const loadVoices = () => {
       const voices = synthesisRef.current.getVoices();
-      setAvailableVoices(voices);
-      const viVoice = voices.find(v => v.lang.includes('vi'));
-      if (viVoice && !voiceSettings.voiceURI) {
-        setVoiceSettings(prev => ({ ...prev, voiceURI: viVoice.voiceURI }));
+      // Lọc chỉ lấy giọng tiếng Việt để dễ chọn
+      const viVoices = voices.filter(v => v.lang.toLowerCase().includes('vi'));
+      // Nếu không có tiếng Việt thì lấy tiếng Anh, không thì lấy hết
+      const filteredVoices = viVoices.length > 0 ? viVoices : voices.filter(v => v.lang.toLowerCase().includes('en')).length > 0 ? voices.filter(v => v.lang.toLowerCase().includes('en')) : voices;
+      
+      setAvailableVoices(filteredVoices);
+      const defaultViVoice = viVoices[0];
+      if (defaultViVoice && !voiceSettings.voiceURI) {
+        setVoiceSettings(prev => ({ ...prev, voiceURI: defaultViVoice.voiceURI }));
       }
     };
     loadVoices();
@@ -814,130 +820,47 @@ const UserPhoneView: React.FC<UserPhoneProps> = ({ user, onUpdateUser, onClose, 
                 </div>
 
                 <div className="space-y-6 overflow-y-auto custom-scrollbar flex-1 pb-10">
-                    {/* Toggle Hugging Face TTS */}
-                    <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
-                        <div className="flex flex-col">
-                            <span className="text-[10px] font-bold text-white uppercase tracking-widest">Hugging Face TTS (Free)</span>
-                            <span className="text-[8px] text-slate-400">Sử dụng model từ Hugging Face</span>
-                        </div>
-                        <button 
-                            onClick={() => setVoiceSettings(prev => ({ 
-                                ...prev, 
-                                useHuggingFaceTTS: !prev.useHuggingFaceTTS,
-                                useGeminiTTS: !prev.useHuggingFaceTTS ? false : prev.useGeminiTTS
-                            }))}
-                            className={`w-10 h-5 rounded-full relative transition-colors ${voiceSettings.useHuggingFaceTTS ? 'bg-indigo-500' : 'bg-slate-700'}`}
+                    {/* Advanced TTS Settings Hidden */}
+                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Chọn giọng trình duyệt</label>
+                        <select 
+                            className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-xs outline-none focus:border-emerald-500/50 transition-colors"
+                            value={voiceSettings.voiceURI}
+                            onChange={(e) => setVoiceSettings(prev => ({ ...prev, voiceURI: e.target.value }))}
                         >
-                            <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${voiceSettings.useHuggingFaceTTS ? 'left-6' : 'left-1'}`}></div>
-                        </button>
+                            {availableVoices.map((v, index) => (
+                                <option key={`${v.voiceURI}-${index}`} value={v.voiceURI} className="text-black">
+                                    {v.name} ({v.lang})
+                                </option>
+                            ))}
+                        </select>
                     </div>
 
-                    {/* Toggle Gemini TTS */}
-                    <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
-                        <div className="flex flex-col">
-                            <span className="text-[10px] font-bold text-white uppercase tracking-widest">Giọng AI Cao Cấp</span>
-                            <span className="text-[8px] text-slate-400">Sử dụng Gemini TTS (Tự nhiên hơn)</span>
+                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                        <div className="flex justify-between">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cao độ (Pitch)</label>
+                            <span className="text-[10px] font-mono text-emerald-400">{voiceSettings.pitch}</span>
                         </div>
-                        <button 
-                            onClick={() => setVoiceSettings(prev => ({ ...prev, useGeminiTTS: !prev.useGeminiTTS }))}
-                            className={`w-10 h-5 rounded-full relative transition-colors ${voiceSettings.useGeminiTTS ? 'bg-emerald-500' : 'bg-slate-700'}`}
-                        >
-                            <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${voiceSettings.useGeminiTTS ? 'left-6' : 'left-1'}`}></div>
-                        </button>
+                        <input 
+                            type="range" min="0.5" max="2" step="0.1"
+                            value={voiceSettings.pitch}
+                            onChange={(e) => setVoiceSettings(prev => ({ ...prev, pitch: parseFloat(e.target.value) }))}
+                            className="w-full accent-emerald-500"
+                        />
                     </div>
 
-                    {voiceSettings.useHuggingFaceTTS ? (
-                        <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
-                             <div className="space-y-2">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Hugging Face API Key</label>
-                                <input 
-                                    type="password"
-                                    value={voiceSettings.hfApiKey || ''}
-                                    onChange={(e) => setVoiceSettings(prev => ({ ...prev, hfApiKey: e.target.value }))}
-                                    placeholder="hf_..."
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-xs outline-none focus:border-indigo-500/50 transition-colors"
-                                />
-                            </div>
-                             <div className="space-y-2">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Model ID</label>
-                                <input 
-                                    type="text"
-                                    value={voiceSettings.hfModel}
-                                    onChange={(e) => setVoiceSettings(prev => ({ ...prev, hfModel: e.target.value }))}
-                                    placeholder="VD: facebook/mms-tts-vie"
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-xs outline-none focus:border-indigo-500/50 transition-colors"
-                                />
-                            </div>
-                            <p className="text-[9px] text-slate-500 italic text-center">
-                                * Sử dụng API miễn phí từ Hugging Face. Một số model có thể cần thời gian khởi động.
-                            </p>
+                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                        <div className="flex justify-between">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tốc độ (Rate)</label>
+                            <span className="text-[10px] font-mono text-emerald-400">{voiceSettings.rate}</span>
                         </div>
-                    ) : voiceSettings.useGeminiTTS ? (
-                        <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Chọn giọng Gemini</label>
-                            <div className="grid grid-cols-2 gap-2">
-                                {['Kore', 'Puck', 'Charon', 'Fenrir', 'Zephyr'].map(voice => (
-                                    <button
-                                        key={voice}
-                                        onClick={() => setVoiceSettings(prev => ({ ...prev, geminiVoice: voice }))}
-                                        className={`p-3 rounded-xl border text-[10px] font-bold uppercase transition-all ${
-                                            voiceSettings.geminiVoice === voice 
-                                            ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' 
-                                            : 'bg-white/5 border-white/5 text-slate-400 hover:bg-white/10'
-                                        }`}
-                                    >
-                                        {voice}
-                                    </button>
-                                ))}
-                            </div>
-                            <p className="text-[9px] text-slate-500 italic mt-2 text-center">
-                                * Giọng AI cần kết nối mạng để hoạt động.
-                            </p>
-                        </div>
-                    ) : (
-                        <>
-                            <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Chọn giọng trình duyệt</label>
-                                <select 
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-xs outline-none focus:border-emerald-500/50 transition-colors"
-                                    value={voiceSettings.voiceURI}
-                                    onChange={(e) => setVoiceSettings(prev => ({ ...prev, voiceURI: e.target.value }))}
-                                >
-                                    {availableVoices.map((v, index) => (
-                                        <option key={`${v.voiceURI}-${index}`} value={v.voiceURI} className="text-black">
-                                            {v.name} ({v.lang})
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                                <div className="flex justify-between">
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cao độ (Pitch)</label>
-                                    <span className="text-[10px] font-mono text-emerald-400">{voiceSettings.pitch}</span>
-                                </div>
-                                <input 
-                                    type="range" min="0.5" max="2" step="0.1"
-                                    value={voiceSettings.pitch}
-                                    onChange={(e) => setVoiceSettings(prev => ({ ...prev, pitch: parseFloat(e.target.value) }))}
-                                    className="w-full accent-emerald-500"
-                                />
-                            </div>
-
-                            <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                                <div className="flex justify-between">
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tốc độ (Rate)</label>
-                                    <span className="text-[10px] font-mono text-emerald-400">{voiceSettings.rate}</span>
-                                </div>
-                                <input 
-                                    type="range" min="0.5" max="2" step="0.1"
-                                    value={voiceSettings.rate}
-                                    onChange={(e) => setVoiceSettings(prev => ({ ...prev, rate: parseFloat(e.target.value) }))}
-                                    className="w-full accent-emerald-500"
-                                />
-                            </div>
-                        </>
-                    )}
+                        <input 
+                            type="range" min="0.5" max="2" step="0.1"
+                            value={voiceSettings.rate}
+                            onChange={(e) => setVoiceSettings(prev => ({ ...prev, rate: parseFloat(e.target.value) }))}
+                            className="w-full accent-emerald-500"
+                        />
+                    </div>
 
                     <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
                         <div className="flex justify-between">

@@ -32,6 +32,7 @@ interface MainChatViewProps {
   onImportData: (data: any, options: any) => void;
   onUpdateCharacter: (char: Character) => void;
   onSaveMemory: (message: Message) => void;
+  onToggleCover: (id: string) => void;
   onHome?: () => void;
   onDashboard?: () => void;
   lastAffectionChange?: number | null;
@@ -65,6 +66,7 @@ const MainChatView: React.FC<MainChatViewProps> = ({
   onImportData,
   onUpdateCharacter,
   onSaveMemory,
+  onToggleCover,
   onHome,
   onDashboard,
   lastAffectionChange,
@@ -281,6 +283,7 @@ const MainChatView: React.FC<MainChatViewProps> = ({
             onVersionChange={onVersionChange}
             onFork={onFork}
             onSaveMemory={onSaveMemory}
+            onToggleCover={onToggleCover}
           />
         ))}
         <div ref={messagesEndRef} />

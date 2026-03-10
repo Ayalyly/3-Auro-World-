@@ -962,6 +962,16 @@ export default function App() {
     }
   };
 
+  const handleToggleCover = (messageId: string) => {
+    setMessages(prev => {
+      const newMsgs = prev.map(m => m.id === messageId ? { ...m, isCovered: !m.isCovered } : m);
+      if (character && user) {
+        syncToFirebase(character, user, newMsgs);
+      }
+      return newMsgs;
+    });
+  };
+
   const handleForkMessage = (messageId: string) => {
     if (!character) return;
     const newBranchId = 'branch-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
@@ -1562,6 +1572,7 @@ export default function App() {
           onImportData={handleImportData}
           onUpdateCharacter={handleUpdateCharacter}
           onSaveMemory={handleSaveMemory}
+          onToggleCover={handleToggleCover}
           onHome={() => setView('home')}
           onDashboard={() => setView('saves')}
           lastAffectionChange={lastAffectionChange}

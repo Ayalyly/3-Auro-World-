@@ -106,6 +106,13 @@ const DashboardView: React.FC<DashboardViewProps> = ({
     }
   }, [slots.length]);
 
+  // Auto-load characters if list is empty and in online mode
+  useEffect(() => {
+    if (appMode === 'online' && slots.length === 0 && activeTab === 'characters' && onLoadAllCharacters) {
+      onLoadAllCharacters();
+    }
+  }, [appMode, activeTab]); // Only run when entering characters tab in online mode
+
   // Countdown Timer
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -982,16 +989,17 @@ const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="flex gap-2">
           <button 
             onClick={() => setShowDisclaimer(true)}
-            className="w-10 h-10 rounded-2xl bg-amber-50 hover:bg-amber-100 text-amber-500 hover:text-amber-600 transition-colors flex items-center justify-center border border-amber-100"
+            className="w-9 h-9 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-500 hover:text-amber-600 transition-colors flex items-center justify-center border border-amber-100"
             title="Miễn trách nhiệm"
           >
-            <i className="fa-solid fa-circle-info"></i>
+            <i className="fa-solid fa-circle-info text-sm"></i>
           </button>
           <button 
             onClick={onLogout} 
-            className="w-10 h-10 rounded-2xl bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors flex items-center justify-center border border-slate-100"
+            className="w-9 h-9 rounded-xl bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors flex items-center justify-center border border-slate-100"
+            title="Ngắt kết nối"
           >
-            <i className="fa-solid fa-power-off"></i>
+            <i className="fa-solid fa-power-off text-sm"></i>
           </button>
         </div>
       </div>
@@ -1021,16 +1029,32 @@ const DashboardView: React.FC<DashboardViewProps> = ({
         {activeTab === 'characters' && (
           <div className="space-y-5 animate-in slide-in-from-bottom-4 duration-500">
             
-            <div className="bg-white rounded-[1.5rem] shadow-sm border border-slate-100/50 overflow-hidden group hover:border-blue-200 transition-all">
-              <button 
-                onClick={onNewCharacter}
-                className="w-full py-4 flex items-center justify-center gap-3 text-blue-500 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all active:scale-[0.99]"
-              >
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-full flex items-center justify-center shadow-sm text-blue-600 group-hover:scale-110 group-hover:from-blue-600 group-hover:to-indigo-600 group-hover:text-white transition-all duration-300 border border-blue-100">
-                  <i className="fa-solid fa-plus text-xs"></i>
-                </div>
-                <span className="text-[10px] font-black uppercase tracking-[0.15em] text-blue-500 group-hover:text-blue-700">Tạo nhân vật mới</span>
-              </button>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-100/50 overflow-hidden group hover:border-blue-200 transition-all">
+                <button 
+                  onClick={onNewCharacter}
+                  className="w-full py-4 flex flex-col items-center justify-center gap-2 text-blue-500 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all active:scale-[0.99]"
+                >
+                  <div className="w-9 h-9 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl flex items-center justify-center shadow-sm text-blue-600 group-hover:scale-110 group-hover:from-blue-600 group-hover:to-indigo-600 group-hover:text-white transition-all duration-300 border border-blue-100">
+                    <i className="fa-solid fa-plus text-sm"></i>
+                  </div>
+                  <span className="text-[9px] font-black uppercase tracking-wider text-blue-500 group-hover:text-blue-700 text-center px-2">Tạo nhân vật</span>
+                </button>
+              </div>
+
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-100/50 overflow-hidden group hover:border-indigo-200 transition-all">
+                <a 
+                  href="https://discord.gg/QCCjEw49C"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-4 flex flex-col items-center justify-center gap-2 text-indigo-500 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 transition-all active:scale-[0.99]"
+                >
+                  <div className="w-9 h-9 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl flex items-center justify-center shadow-sm text-indigo-600 group-hover:scale-110 group-hover:from-indigo-600 group-hover:to-purple-600 group-hover:text-white transition-all duration-300 border border-indigo-100">
+                    <i className="fa-brands fa-discord text-sm"></i>
+                  </div>
+                  <span className="text-[9px] font-black uppercase tracking-wider text-indigo-500 group-hover:text-indigo-700 text-center px-2">Discord</span>
+                </a>
+              </div>
             </div>
 
             <div className="space-y-3">

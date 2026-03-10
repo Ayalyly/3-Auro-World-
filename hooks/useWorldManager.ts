@@ -117,7 +117,14 @@ export function useWorldManager(
         localStorage.setItem('auro_settings', JSON.stringify(mergedSettings));
       }
       
-      const onlineSlots = await firebaseRef.current.loadWorldCharacters(worldId, 10);
+      // Try loading only user's characters first (prioritize)
+      let onlineSlots = await firebaseRef.current.loadWorldCharacters(worldId, 50, true);
+      
+      // If no characters found for user, or if we want to show others too, load more
+      if (onlineSlots.length === 0) {
+        onlineSlots = await firebaseRef.current.loadWorldCharacters(worldId, 500, false);
+      }
+
       setSlots(onlineSlots.sort((a, b) => b.lastPlayed - a.lastPlayed));
       setView('saves');
     } catch (e) {

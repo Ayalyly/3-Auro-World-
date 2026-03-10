@@ -97,6 +97,7 @@ export interface Message {
   images?: string[]; // Support multiple images
   isThinking?: boolean;
   isEdited?: boolean;
+  isCovered?: boolean;
   versions?: { text: string; timestamp: number }[];
   currentVersionIndex?: number;
   branchId?: string;

@@ -15,9 +15,10 @@ interface MessageBubbleProps {
   onVersionChange?: (messageId: string, direction: 'prev' | 'next') => void;
   onFork?: (messageId: string) => void;
   onSaveMemory?: (message: Message) => void;
+  onToggleCover?: (id: string) => void;
 }
 
-const MessageBubble: React.FC<MessageBubbleProps> = ({ message, character, userAvatar, userName = 'Bạn', theme, onDelete, onEdit, onRegenerate, onVersionChange, onFork, onSaveMemory }) => {
+const MessageBubble: React.FC<MessageBubbleProps> = ({ message, character, userAvatar, userName = 'Bạn', theme, onDelete, onEdit, onRegenerate, onVersionChange, onFork, onSaveMemory, onToggleCover }) => {
   const isAi = message.sender === Sender.AI;
   const isSystem = message.sender === Sender.SYSTEM;
   const isUser = message.sender === Sender.USER;
@@ -269,26 +270,68 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, character, userA
               >
                 {/* Single Image (Legacy) */}
                 {message.image && !message.images && message.image !== "GENERATING" && (
-                  <img src={message.image} className="rounded-lg mb-2 max-w-full h-auto border border-white/20" alt="attachment" />
+                  <div className="relative group/img mb-2">
+                    <img 
+                      src={message.image} 
+                      className={`rounded-lg max-w-full h-auto border border-white/20 transition-all duration-500 ${message.isCovered ? 'blur-2xl scale-95 opacity-50' : ''}`} 
+                      alt="attachment" 
+                    />
+                    {message.isCovered && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center gap-2">
+                          <i className="fa-solid fa-eye-slash text-white text-xs"></i>
+                          <span className="text-[10px] font-black text-white uppercase tracking-widest">Đã che bảo mật</span>
+                        </div>
+                      </div>
+                    )}
+                    {isUser && onToggleCover && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); onToggleCover(message.id); }}
+                        className="absolute top-2 right-2 w-8 h-8 bg-black/50 backdrop-blur-md text-white rounded-full flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity shadow-lg border border-white/20 hover:bg-black/70 active:scale-90"
+                        title={message.isCovered ? "Hiện hình ảnh" : "Che bảo mật"}
+                      >
+                        <i className={`fa-solid ${message.isCovered ? 'fa-eye' : 'fa-eye-slash'} text-xs`}></i>
+                      </button>
+                    )}
+                  </div>
                 )}
 
                 {/* Multiple Images */}
                 {message.images && message.images.length > 0 && (
-                  <div className={`grid gap-1 mb-2 ${
-                    message.images.length === 1 ? 'grid-cols-1' : 
-                    message.images.length === 2 ? 'grid-cols-2' : 
-                    message.images.length === 3 ? 'grid-cols-2' : 
-                    'grid-cols-2'
-                  }`}>
-                    {message.images.map((img, idx) => (
-                      <div key={idx} className={`${message.images!.length === 3 && idx === 0 ? 'col-span-2' : ''}`}>
-                        <img 
-                          src={img} 
-                          className="rounded-lg w-full h-auto object-cover border border-white/20 shadow-sm max-h-[300px]" 
-                          alt={`attachment-${idx}`} 
-                        />
+                  <div className="relative group/img mb-2">
+                    <div className={`grid gap-1 ${
+                      message.images.length === 1 ? 'grid-cols-1' : 
+                      message.images.length === 2 ? 'grid-cols-2' : 
+                      message.images.length === 3 ? 'grid-cols-2' : 
+                      'grid-cols-2'
+                    } transition-all duration-500 ${message.isCovered ? 'blur-2xl scale-95 opacity-50' : ''}`}>
+                      {message.images.map((img, idx) => (
+                        <div key={idx} className={`${message.images!.length === 3 && idx === 0 ? 'col-span-2' : ''}`}>
+                          <img 
+                            src={img} 
+                            className="rounded-lg w-full h-auto object-cover border border-white/20 shadow-sm max-h-[300px]" 
+                            alt={`attachment-${idx}`} 
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    {message.isCovered && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center gap-2">
+                          <i className="fa-solid fa-eye-slash text-white text-xs"></i>
+                          <span className="text-[10px] font-black text-white uppercase tracking-widest">Đã che bảo mật</span>
+                        </div>
                       </div>
-                    ))}
+                    )}
+                    {isUser && onToggleCover && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); onToggleCover(message.id); }}
+                        className="absolute top-2 right-2 w-8 h-8 bg-black/50 backdrop-blur-md text-white rounded-full flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity shadow-lg border border-white/20 hover:bg-black/70 active:scale-90"
+                        title={message.isCovered ? "Hiện hình ảnh" : "Che bảo mật"}
+                      >
+                        <i className={`fa-solid ${message.isCovered ? 'fa-eye' : 'fa-eye-slash'} text-xs`}></i>
+                      </button>
+                    )}
                   </div>
                 )}
 

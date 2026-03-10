@@ -65,15 +65,12 @@ export function useSaveManager(
             console.warn("Local backup save failed:", e);
           }
 
-          const lastMsg = msgs[msgs.length - 1];
-          if (lastMsg && lastMsg.isThinking) {
-             resolve();
-             return;
-          }
+          // Filter out temporary thinking messages before saving to cloud
+          const msgsToSave = msgs.filter(m => !m.isThinking);
 
           if (appMode === 'online' && worldId && firebaseRef.current.isReady() && !isOfflineMode) {
             try {
-              await firebaseRef.current.saveCharacterToWorld(slotId, char, userObj, msgs);
+              await firebaseRef.current.saveCharacterToWorld(slotId, char, userObj, msgsToSave);
             } catch (e: any) {
               if (e.message && e.message.includes("resource-exhausted")) {
                   console.error("🔥 FIREBASE QUOTA EXCEEDED. Pausing cloud sync.");

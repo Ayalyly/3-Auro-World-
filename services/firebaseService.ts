@@ -15,6 +15,7 @@ import {
   query,
   orderBy,
   limit,
+  where,
   getCountFromServer,
   collectionGroup,
   getDocFromCache,
@@ -50,7 +51,7 @@ const DEFAULT_WORLD_CONTEXT = {
 };
 
 const CHUNK_SIZE = 20;
-const MAX_IMAGE_SIZE_FOR_STORAGE = 150000; // 150KB threshold for compression in storage
+const MAX_IMAGE_SIZE_FOR_STORAGE = 80000; // 80KB threshold for compression in storage
 
 export class FirebaseService {
   private app: FirebaseApp | undefined;
@@ -630,16 +631,27 @@ export class FirebaseService {
   // ==========================
   // LOAD DANH SÁCH NHÂN VẬT
   // ==========================
-  async loadWorldCharacters(targetWorldId?: string, limitCount?: number): Promise<SaveSlot[]> {
+  async loadWorldCharacters(targetWorldId?: string, limitCount?: number, onlyMine: boolean = false): Promise<SaveSlot[]> {
     const worldId = targetWorldId || this.currentWorldId;
     if (!worldId || !this.isInitialized || !this.db) return [];
 
     const slotMap = new Map<string, SaveSlot>();
     try {
       const charsRef = collection(this.db, "auro_worlds", worldId, "characters");
-      let q = query(charsRef, orderBy("updatedAt", "desc"));
+      let q;
+      
+      if (onlyMine && this.currentUser) {
+        q = query(
+          charsRef, 
+          where("ownerId", "==", this.currentUser.uid),
+          orderBy("updatedAt", "desc")
+        );
+      } else {
+        q = query(charsRef, orderBy("updatedAt", "desc"));
+      }
+
       if (limitCount) {
-        q = query(charsRef, orderBy("updatedAt", "desc"), limit(limitCount));
+        q = query(q, limit(limitCount));
       }
       
       let charSnapshot;
@@ -653,6 +665,9 @@ export class FirebaseService {
               } catch (cacheErr) {
                   return [];
               }
+          } else if (e.code === 'failed-precondition' || e.message?.includes('index')) {
+              console.warn("Missing index for loadWorldCharacters, returning empty for fallback");
+              return [];
           } else {
               throw e;
           }
@@ -1078,7 +1093,7 @@ export class FirebaseService {
         // Handle legacy single image
         let newImage = msg.image;
         if (newImage && typeof newImage === "string" && newImage.length > MAX_IMAGE_SIZE_FOR_STORAGE) {
-          newImage = await this.compressBase64(newImage, 600, 0.6);
+          newImage = await this.compressBase64(newImage, 400, 0.5);
         }
 
         // Handle multiple images
@@ -1087,7 +1102,7 @@ export class FirebaseService {
           newImages = await Promise.all(
             newImages.map(async (img) => {
               if (img && typeof img === "string" && img.length > MAX_IMAGE_SIZE_FOR_STORAGE) {
-                return await this.compressBase64(img, 600, 0.6);
+                return await this.compressBase64(img, 400, 0.5);
               }
               return img;
             })

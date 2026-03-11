@@ -342,6 +342,10 @@ export default function SetupScreen({
     try {
       let finalChar: Character;
 
+      // Define personas for AI prompts (can be derived from descriptions)
+      const charPersona = charDesc; 
+      const userPersona = userDesc;
+
       if (importedChar) {
         setNpcProgress('✨ Đang chuẩn bị thế giới từ thẻ triệu hồi...');
         // Use imported data but allow overrides from UI
@@ -374,8 +378,6 @@ export default function SetupScreen({
           };
         }
 
-        // Removed artificial delay
-        
         // Ensure locked fields remain locked
         if (charDesc === 'LOCKED') finalChar.description = importedChar.description || '';
         if (charOpening === 'LOCKED') finalChar.openingMessage = importedChar.openingMessage || '';
@@ -400,7 +402,7 @@ export default function SetupScreen({
         console.log(`⏳ Bước 1: World Context (${worldModel})...`);
         
         const generatedWorld = await geminiRef.current.generateWorldContext(
-          charName, charDesc, userName, userDesc, worldContext || "Dựa theo cốt truyện", worldModel, charLanguage
+          charName, charDesc, userName, userDesc, worldContext || "Dựa theo cốt truyện", charPersona, userPersona, charAppearance, userAppearance, charOpening, worldModel, charLanguage
         );
         
         if (generatedWorld.error) throw new Error(generatedWorld.error);
@@ -409,7 +411,7 @@ export default function SetupScreen({
         console.log(`⏳ Bước 2: Social & Economy (${worldModel})...`);
         
         const socialEco = await geminiRef.current.generateSocialAndEconomy(
-          charName, userName, generatedWorld, worldModel, charLanguage
+          charName, charDesc, userName, userDesc, charPersona, userPersona, charAppearance, userAppearance, charOpening, generatedWorld, worldModel, charLanguage
         );
 
         if (socialEco.error) throw new Error(socialEco.error);
@@ -426,22 +428,45 @@ export default function SetupScreen({
         console.log(`⏳ Bước 3: Legacy Content (${worldModel})...`);
         
         const legacyData = await geminiRef.current.generateLegacyContent(
-          charName, enrichedRelations, generatedWorld, generatedWorld, worldModel, charLanguage
+          charName, charDesc, userName, userDesc, charPersona, userPersona, charAppearance, userAppearance, charOpening, enrichedRelations, generatedWorld, generatedWorld, worldModel, charLanguage
         );
         console.log("✅ Legacy Content OK");
 
-        const mapAssetsToItems = (assets: string[]): InventoryItem[] => {
-          return (assets || []).map((assetName, idx) => ({
-            id: `init-${idx}-${Date.now()}`,
-            name: assetName,
-            icon: "📦",
-            description: `Một vật phẩm quý giá: ${assetName}`,
-            value: 100,
-            affinityBonus: 2,
-            category: "Vật phẩm",
-            quantity: 1,
-            rarity: "Thường"
-          }));
+        setNpcProgress('💰 Đang thiết lập tài sản & tài chính...');
+        console.log(`⏳ Bước 4: Initial Assets (${worldModel})...`);
+        
+        const initialAssets = await geminiRef.current.generateInitialAssets(
+          charName, charDesc, userName, userDesc, charPersona, userPersona, charAppearance, userAppearance, charOpening, generatedWorld, generatedWorld, charLanguage
+        );
+        console.log("✅ Initial Assets OK", initialAssets);
+
+        const mapAssetsToItems = (assets: any[]): InventoryItem[] => {
+          return (assets || []).map((asset, idx) => {
+            if (typeof asset === 'string') {
+              return {
+                id: `init-${idx}-${Date.now()}`,
+                name: asset,
+                icon: "📦",
+                description: `Một vật phẩm quý giá: ${asset}`,
+                value: 100,
+                affinityBonus: 2,
+                category: "Vật phẩm",
+                quantity: 1,
+                rarity: "Thường"
+              };
+            }
+            return {
+              id: asset.id || `init-${idx}-${Date.now()}`,
+              name: asset.name || "Vật phẩm",
+              icon: "📦",
+              description: asset.description || "Một vật phẩm",
+              value: asset.value || 100,
+              affinityBonus: 2,
+              category: "Vật phẩm",
+              quantity: asset.quantity || 1,
+              rarity: "Thường"
+            };
+          });
         };
 
         const getFinalValue = (current: string, original: string | undefined) => {
@@ -460,8 +485,10 @@ export default function SetupScreen({
             maxScore: 100, 
             status: initialAffinity >= 80 ? 'Tri kỷ' : initialAffinity >= 40 ? 'Thân thiết' : initialAffinity >= 0 ? 'Người quen' : initialAffinity >= -40 ? 'Căng thẳng' : 'Kẻ thù', 
             hearts: Math.max(1, Math.floor((initialAffinity + 100) / 40)), 
-            money: Number(socialEco.charMoney) || 1000,
-            inventory: mapAssetsToItems(socialEco.charAssets), properties: [], transactions: [],
+            money: Number(initialAssets.charMoney) || Number(socialEco.charMoney) || 1000,
+            inventory: mapAssetsToItems(initialAssets.charInventory || socialEco.charAssets), 
+            properties: initialAssets.charProperties || [], 
+            transactions: initialAssets.transactions || [],
             socialPosts: (legacyData?.legacySocialPosts || []).map((p: any) => ({
                 ...p, id: 'post-' + Math.random().toString(36).substring(2, 9),
                 avatar: enrichedRelations.find((r: Relation) => r.name === p.authorName)?.avatar || `https://api.dicebear.com/7.x/notionists/svg?seed=${p.authorName}`,
@@ -481,10 +508,10 @@ export default function SetupScreen({
             description: userDesc, 
             avatar: userAvatar, 
             appearance: userAppearance, 
-            money: Number(socialEco.userMoney) || 500 
+            money: Number(initialAssets.userMoney) || Number(socialEco.userMoney) || 500 
           }, 
-          mapAssetsToItems(socialEco.userAssets), 
-          [], 
+          mapAssetsToItems(initialAssets.userInventory || socialEco.userAssets), 
+          initialAssets.userProperties || [], 
           socialEco.currencyName || 'Xu'
         );
       }

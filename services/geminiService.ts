@@ -795,8 +795,15 @@ ${history.map(m => `${m.sender === 'USER' ? userName : npcName}: ${m.text}`).joi
     history: any[],
     affinity: number = 50,
     personalNotes: string = "",
-    language: 'vi' | 'en' = 'vi'
+    language: 'vi' | 'en' = 'vi',
+    relations: any[] = [], // Thêm relations để Char biết các mối quan hệ khác
+    diary: any[] = [],
+    userContext: { name: string, description: string, relationshipScore: number } = { name: 'Người dùng', description: '', relationshipScore: 50 }
   ) {
+    // Xác định ai là người nhắn tiếp theo dựa trên lịch sử
+    const lastMsg = history.length > 0 ? history[history.length - 1] : null;
+    const nextSender = (lastMsg?.sender === 'NPC' || lastMsg?.sender === npcName) ? 'CHAR' : 'NPC';
+
     const system = getNextSocialTurnSystemPrompt(
       charName,
       charLore,
@@ -804,7 +811,11 @@ ${history.map(m => `${m.sender === 'USER' ? userName : npcName}: ${m.text}`).joi
       npcType,
       affinity,
       personalNotes,
-      language
+      language,
+      nextSender,
+      relations,
+      diary,
+      userContext
     );
 
     const content = [
@@ -812,7 +823,7 @@ ${history.map(m => `${m.sender === 'USER' ? userName : npcName}: ${m.text}`).joi
         role: "user",
         parts: [
           {
-            text: `Lịch sử chat gần đây: ${JSON.stringify(history.slice(-5))}`
+            text: `Lịch sử chat gần đây: ${JSON.stringify(history.slice(-10))}\n\nHãy viết tin nhắn tiếp theo của ${nextSender === 'CHAR' ? charName : npcName}.`
           }
         ]
       }
@@ -1148,6 +1159,11 @@ ${existingMemories.map(m => `- ${m}`).join('\n')}
     userName: string,
     userDesc: string,
     rawSetting: string,
+    charPersona: string = '',
+    userPersona: string = '',
+    charAppearance: string = '',
+    userAppearance: string = '',
+    firstMessage: string = '',
     modelName: string = DEFAULT_MODEL,
     language: string = 'Tiếng Việt'
   ) {
@@ -1157,6 +1173,11 @@ ${existingMemories.map(m => `- ${m}`).join('\n')}
       userName,
       userDesc,
       rawSetting,
+      charPersona,
+      userPersona,
+      charAppearance,
+      userAppearance,
+      firstMessage,
       language
     );
 
@@ -1178,12 +1199,19 @@ ${existingMemories.map(m => `- ${m}`).join('\n')}
 
   public async generateSocialAndEconomy(
     charName: string,
+    charDesc: string,
     userName: string,
+    userDesc: string,
+    charPersona: string,
+    userPersona: string,
+    charAppearance: string,
+    userAppearance: string,
+    firstMessage: string,
     worldContext: any,
     modelName: string = DEFAULT_MODEL,
     language: string = 'Tiếng Việt'
   ) {
-    const prompt = getNpcGenerationPrompt(charName, userName, worldContext, language);
+    const prompt = getNpcGenerationPrompt(charName, charDesc, userName, userDesc, charPersona, userPersona, charAppearance, userAppearance, firstMessage, worldContext, language);
 
     const content = [{ role: "user", parts: [{ text: prompt }] }];
     const res = await this.safeGenerateContent(modelName, content, undefined, true);
@@ -1209,6 +1237,11 @@ ${existingMemories.map(m => `- ${m}`).join('\n')}
     userName: string,
     userDesc: string,
     rawSetting: string,
+    charPersona: string = '',
+    userPersona: string = '',
+    charAppearance: string = '',
+    userAppearance: string = '',
+    firstMessage: string = '',
     language: string = 'Tiếng Việt'
   ) {
     const prompt = getAnalyzeUserLorePrompt(
@@ -1217,6 +1250,11 @@ ${existingMemories.map(m => `- ${m}`).join('\n')}
       userName,
       userDesc,
       rawSetting,
+      charPersona,
+      userPersona,
+      charAppearance,
+      userAppearance,
+      firstMessage,
       language
     );
 
@@ -1283,12 +1321,22 @@ ${existingMemories.map(m => `- ${m}`).join('\n')}
   // ================================================================
   public async generateSocialMemory(
     charName: string,
+    charDesc: string,
+    userName: string,
+    userDesc: string,
+    charPersona: string,
+    userPersona: string,
     worldGenesis: any,
     loreAnalysis: any,
     language: string = 'Tiếng Việt'
   ) {
     const prompt = getSocialMemoryPrompt(
       charName,
+      charDesc,
+      userName,
+      userDesc,
+      charPersona,
+      userPersona,
       worldGenesis,
       loreAnalysis,
       language
@@ -1339,8 +1387,26 @@ ${existingMemories.map(m => `- ${m}`).join('\n')}
   // ================================================================
   // ECONOMY & INITIAL ASSETS
   // ================================================================
-  public async generateEconomy(worldGenesis: any, language: string = 'Tiếng Việt') {
-    const prompt = getEconomyPrompt(worldGenesis, language);
+  public async generateEconomy(
+    charName: string,
+    charDesc: string,
+    userName: string,
+    userDesc: string,
+    charPersona: string,
+    userPersona: string,
+    worldGenesis: any,
+    language: string = 'Tiếng Việt'
+  ) {
+    const prompt = getEconomyPrompt(
+      charName,
+      charDesc,
+      userName,
+      userDesc,
+      charPersona,
+      userPersona,
+      worldGenesis,
+      language
+    );
 
     const content = [{ role: "user", parts: [{ text: prompt }] }];
     const res = await this.safeGenerateContent(
@@ -1360,12 +1426,12 @@ ${existingMemories.map(m => `- ${m}`).join('\n')}
   }
 
   public async generateOnIdleThought(
-    charName: string,
-    charDesc: string,
+    character: Character,
     history: Message[],
-    settings: AppSettings
+    settings: AppSettings,
+    diary: any[] = []
   ): Promise<{ text: string; mood: string }> {
-    const system = getOnIdleThoughtPrompt(charName, charDesc);
+    const system = getOnIdleThoughtPrompt(character, diary);
 
     const content = [
       {
@@ -1396,14 +1462,28 @@ ${existingMemories.map(m => `- ${m}`).join('\n')}
 
   public async generateInitialAssets(
     charName: string,
+    charDesc: string,
     userName: string,
+    userDesc: string,
+    charPersona: string,
+    userPersona: string,
+    charAppearance: string,
+    userAppearance: string,
+    firstMessage: string,
     worldGenesis: any,
     loreAnalysis: any,
     language: string = 'Tiếng Việt'
   ) {
     const prompt = getInitialAssetsPrompt(
       charName,
+      charDesc,
       userName,
+      userDesc,
+      charPersona,
+      userPersona,
+      charAppearance,
+      userAppearance,
+      firstMessage,
       worldGenesis,
       loreAnalysis,
       language
@@ -1458,6 +1538,14 @@ ${existingMemories.map(m => `- ${m}`).join('\n')}
   // ================================================================
   public async generateLegacyContent(
     charName: string,
+    charDesc: string,
+    userName: string,
+    userDesc: string,
+    charPersona: string,
+    userPersona: string,
+    charAppearance: string,
+    userAppearance: string,
+    firstMessage: string,
     relations: Relation[],
     worldGenesis: any,
     loreAnalysis: any,
@@ -1467,6 +1555,14 @@ ${existingMemories.map(m => `- ${m}`).join('\n')}
     const npcNames = relations.map((r) => r.name).join(", ");
     const prompt = getLegacyContentPrompt(
       charName,
+      charDesc,
+      userName,
+      userDesc,
+      charPersona,
+      userPersona,
+      charAppearance,
+      userAppearance,
+      firstMessage,
       npcNames,
       worldGenesis,
       loreAnalysis,
@@ -1772,7 +1868,9 @@ ${existingMemories.map(m => `- ${m}`).join('\n')}
     const prompt = getDiaryEntryPrompt(
       char.name,
       pastDiarySummary,
-      chatText
+      chatText,
+      char.money || 0,
+      char.world?.currencyName || "Xu"
     );
 
     const content = [{ role: "user", parts: [{ text: prompt }] }];

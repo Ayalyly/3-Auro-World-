@@ -14,14 +14,24 @@ export class HomeAIService {
     messages: Message[], 
     relationshipStatus: string = 'Bạn bè', 
     roomItems: string[] = [],
-    openingMessage: string = ""
+    openingMessage: string = "",
+    diary: any[] = [],
+    characterMoney: number = 0,
+    currencyName: string = "Xu"
   ): Promise<string> {
+    const diaryContext = diary.length > 0 
+      ? `\n[NHẬT KÝ THẦM KÍN - KÝ ỨC QUAN TRỌNG]:\n${diary.slice(-5).map(d => `- Ngày ${new Date(d.date).toLocaleDateString()}: ${d.content}`).join('\n')}`
+      : '';
+
+    const financialStatus = `\n[TÀI CHÍNH]: ${characterMoney?.toLocaleString()} ${currencyName || "Xu"}
+${(characterMoney || 0) < 0 ? "⚠️ BẠN ĐANG NỢ! Điều này khiến bạn cảm thấy áp lực và lo lắng." : ""}`;
+
     // Thay vì truyền cả lịch sử chat dễ gây nhầm lẫn role, ta chỉ truyền bối cảnh hiện tại
     const prompt = `User vừa bước vào phòng và chạm vào bạn. Hãy nói một câu thoại duy nhất phản hồi lại hành động này.`;
 
     const systemInstruction = `
 BẠN LÀ: ${characterName}
-MÔ TẢ: ${characterDescription}
+MÔ TẢ: ${characterDescription}${diaryContext}${financialStatus}
 THAM KHẢO CÁCH XƯNG HÔ TỪ ĐÂY: "${openingMessage}"
 BỐI CẢNH: Bạn đang ở trong phòng riêng (Tổ ấm) của User. User vừa bước vào phòng và chạm vào bạn.
 MỐI QUAN HỆ: ${relationshipStatus}

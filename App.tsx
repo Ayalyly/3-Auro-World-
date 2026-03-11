@@ -773,6 +773,7 @@ export default function App() {
       // 1. Parse Tags
       const aiTransferMatch = fullText.match(/\[(?:CHUYỂN_KHOẢN|CK|TRANSFER|SEND):\s*(\d+)\]/i);
       const aiGiftMatch = fullText.match(/\[TẶNG:\s*(.*?)\s+(.*?)\]/i);
+      const aiLUMMatch = fullText.match(/\[LỤM:\s*(.*?)\s+(.*?)\]/i);
       const aiYoutubeMatch = fullText.match(/\[YOUTUBE:\s*(.*?)\]/i);
       const affectionChange = AffectionManager.parseAffectionTag(fullText);
 
@@ -791,6 +792,7 @@ export default function App() {
       let cleanText = AffectionManager.cleanAffectionTag(parsedCleanText);
       cleanText = cleanText.replace(/\[(?:CHUYỂN_KHOẢN|CK|TRANSFER|SEND):\s*\d+\]/gi, "");
       cleanText = cleanText.replace(/\[TẶNG:\s*.*?\s+.*?\]/gi, "");
+      cleanText = cleanText.replace(/\[LỤM:\s*.*?\s+.*?\]/gi, "");
       cleanText = cleanText.replace(/\[YOUTUBE:\s*.*?\]/gi, "");
 
       // Update message with clean text
@@ -814,22 +816,24 @@ export default function App() {
           setTimeout(() => setLastAffectionChange(null), 5000);
       }
 
-      // 4. Handle AI Gifts/Transfers
+      // 4. Handle AI Gifts/Transfers/LUM
       let finalChar = updatedChar;
       let finalUser = user;
 
-      if (aiTransferMatch || aiGiftMatch) {
+      if (aiTransferMatch || aiGiftMatch || aiLUMMatch) {
           const transferAmount = aiTransferMatch ? parseInt(aiTransferMatch[1]) : 0;
           let giftItem: InventoryItem | undefined;
-          if (aiGiftMatch) {
+          
+          if (aiGiftMatch || aiLUMMatch) {
+            const match = aiGiftMatch || aiLUMMatch;
             giftItem = {
               id: "gift-" + Date.now(),
-              icon: aiGiftMatch[1].trim(),
-              name: aiGiftMatch[2].trim(),
-              description: `Quà từ ${character.name}`,
+              icon: match![1].trim(),
+              name: match![2].trim(),
+              description: aiLUMMatch ? `Vật phẩm bạn nhặt được` : `Quà từ ${character.name}`,
               value: 0,
-              affinityBonus: 10,
-              category: "Gift"
+              affinityBonus: aiLUMMatch ? 5 : 10,
+              category: aiLUMMatch ? "Found" : "Gift"
             };
           }
 
@@ -840,11 +844,13 @@ export default function App() {
           let notifMsg = "";
           const currencyName = finalUser.currencyName || 'tiền';
           if (transferAmount && giftItem) {
-            notifMsg = `${character.name} đã chuyển cho bạn ${transferAmount} ${currencyName} và tặng bạn món quà: ${giftItem.icon} ${giftItem.name}`;
+            notifMsg = `${character.name} đã chuyển cho bạn ${transferAmount} ${currencyName} và ${aiLUMMatch ? 'bạn đã nhặt được' : 'tặng bạn món quà'}: ${giftItem.icon} ${giftItem.name}`;
           } else if (transferAmount) {
             notifMsg = `${character.name} đã chuyển cho bạn ${transferAmount} ${currencyName}`;
           } else if (giftItem) {
-            notifMsg = `${character.name} đã tặng bạn món quà: ${giftItem.icon} ${giftItem.name}`;
+            notifMsg = aiLUMMatch 
+              ? `Bạn đã nhặt được: ${giftItem.icon} ${giftItem.name}`
+              : `${character.name} đã tặng bạn món quà: ${giftItem.icon} ${giftItem.name}`;
           }
           
           if (notifMsg) {

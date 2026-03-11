@@ -1,5 +1,13 @@
 export const getLegacyContentPrompt = (
   charName: string,
+  charDesc: string,
+  userName: string,
+  userDesc: string,
+  charPersona: string,
+  userPersona: string,
+  charAppearance: string,
+  userAppearance: string,
+  firstMessage: string,
   npcNames: string,
   worldGenesis: any,
   loreAnalysis: any,
@@ -7,13 +15,20 @@ export const getLegacyContentPrompt = (
 ): string => {
   return `Tạo 3–5 bài đăng AuraNet CŨ (trước hiện tại) cho ${charName} và các NPC: ${npcNames}.
 [BỐI CẢNH]
+- Nhân vật chính: ${charName} (${charDesc})
+- Tính cách & Cốt truyện nhân vật: ${charPersona}
+- Ngoại hình nhân vật: ${charAppearance}
+- Lời mở đầu của nhân vật: "${firstMessage}"
+- Người chơi: ${userName} (${userDesc})
+- Vai trò & Tính cách người chơi: ${userPersona}
+- Ngoại hình người chơi: ${userAppearance}
 - Thế giới: ${worldGenesis.worldDetail || "Chưa rõ"}
 - Thể loại: ${loreAnalysis.genre || "Chưa rõ"}
 - Xung đột: ${loreAnalysis.mainConflict || "Chưa rõ"}
 
 [YÊU CẦU QUAN TRỌNG]:
 1. BẮT BUỘC trả lời bằng ngôn ngữ: ${language.toUpperCase()}. NẾU NGÔN NGỮ LÀ 'TIẾNG VIỆT', BẠN PHẢI TRẢ LỜI BẰNG TIẾNG VIỆT. TUYỆT ĐỐI KHÔNG SỬ DỤNG TIẾNG ANH HOẶC BẤT KỲ NGÔN NGỮ NÀO KHÁC TRỪ KHI NGƯỜI DÙNG YÊU CẦU RÕ RÀNG.
-2. Nội dung phải phù hợp chặt chẽ với Thể loại.
+2. Nội dung phải phù hợp chặt chẽ với Thể loại và Cốt truyện. Các bài đăng nên phản ánh tính cách, hoàn cảnh và các sự kiện trong quá khứ của nhân vật.
 3. TUYỆT ĐỐI KHÔNG dùng hành động (*...*), không suy nghĩ ([]). Chỉ viết nội dung status.
 4. NẾU là Hiện đại: Dùng ngôn ngữ đời thường, mạng xã hội (Facebook/Instagram vibe).
 5. NẾU là Cổ đại/Tiên hiệp: Dùng văn phong tương ứng nhưng vẫn ngắn gọn.

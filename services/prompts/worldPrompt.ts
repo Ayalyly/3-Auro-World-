@@ -1,9 +1,16 @@
+import { Character } from '../../types';
+
 export const getWorldContextPrompt = (
   charName: string,
   charDesc: string,
   userName: string,
   userDesc: string,
   rawSetting: string,
+  charPersona: string = '',
+  userPersona: string = '',
+  charAppearance: string = '',
+  userAppearance: string = '',
+  firstMessage: string = '',
   language: string = 'Tiếng Việt'
 ): string => {
   return `Bạn là chuyên gia phân tích kịch bản và kiến trúc sư thế giới.
@@ -11,11 +18,17 @@ BẮT BUỘC trả lời bằng ngôn ngữ: ${language.toUpperCase()}.
 [DỮ LIỆU ĐẦU VÀO]
 - Nhân vật chính: ${charName}
 - Mô tả nhân vật: ${charDesc}
-- Người chơi: ${userName} (${userDesc})
-- Bối cảnh mong muốn: "${rawSetting || "Dựa theo cốt truyện"}"
+- Tính cách & Cốt truyện nhân vật: ${charPersona}
+- Ngoại hình nhân vật: ${charAppearance}
+- Lời mở đầu của nhân vật: "${firstMessage}"
+- Người chơi: ${userName}
+- Mô tả người chơi: ${userDesc}
+- Vai trò & Tính cách người chơi: ${userPersona}
+- Ngoại hình người chơi: ${userAppearance}
+- Bối cảnh mong muốn: "${rawSetting || "Dựa theo cốt truyện và tính cách"}"
 
 [NHIỆM VỤ QUAN TRỌNG NHẤT]
-Phân tích kỹ cốt truyện để xác định CHÍNH XÁC thể loại (Genre) và Bối cảnh (Setting).
+Phân tích kỹ TOÀN BỘ dữ liệu trên (đặc biệt là cốt truyện, tính cách và lời mở đầu) để xác định CHÍNH XÁC thể loại (Genre) và Bối cảnh (Setting).
 
 ⚠️ QUY TẮC BẮT BUỘC (KHÔNG ĐƯỢC SAI):
 1. NẾU cốt truyện là Hiện đại / Đời thực (tình yêu, hôn nhân, công sở, học đường, gia đình, xã hội đen...):
@@ -45,23 +58,33 @@ export const getAnalyzeUserLorePrompt = (
   userName: string,
   userDesc: string,
   rawSetting: string,
+  charPersona: string = '',
+  userPersona: string = '',
+  charAppearance: string = '',
+  userAppearance: string = '',
+  firstMessage: string = '',
   language: string = 'Tiếng Việt'
 ): string => {
   return `Bạn là kiến trúc sư thế giới đa thể loại (cổ đại, hiện đại, tiên hiệp, ABO, thú nhân, tinh tế, sci-fi,...).
 BẮT BUỘC trả lời bằng ngôn ngữ: ${language.toUpperCase()}.
 
-[THÔNG TIN NHÂN VẬT]
+[THÔNG TIN CHI TIẾT]
 - Nhân vật chính: ${charName}
   Mô tả: ${charDesc}
+  Tính cách & Cốt truyện: ${charPersona}
+  Ngoại hình: ${charAppearance}
+  Lời mở đầu: "${firstMessage}"
 
 - Người chơi: ${userName}
   Mô tả: ${userDesc}
+  Vai trò & Tính cách: ${userPersona}
+  Ngoại hình: ${userAppearance}
 
 [BỐI CẢNH DO USER NHẬP]
-"${rawSetting || "Chưa cung cấp rõ ràng."}"
+"${rawSetting || "Chưa cung cấp rõ ràng, hãy tự suy luận từ cốt truyện và tính cách."}"
 
 [NHIỆM VỤ]
-1. Phân tích để suy ra thể loại (genre) phù hợp: ví dụ "cổ đại cung đấu", "hiện đại đô thị", "tiên hiệp", "ABO học viện", "thú nhân bộ lạc", "tinh tế đế quốc", "sci-fi cyberpunk",...
+1. Phân tích TẤT CẢ thông tin trên để suy ra thể loại (genre) phù hợp nhất: ví dụ "cổ đại cung đấu", "hiện đại đô thị", "tiên hiệp", "ABO học viện", "thú nhân bộ lạc", "tinh tế đế quốc", "sci-fi cyberpunk",...
 2. Xác định:
    - era: thời đại (cổ đại / cận đại / hiện đại / tương lai / ngoài vũ trụ / ...).
    - techLevel: cấp độ công nghệ ("phi điện", "công nghiệp", "điện tử", "liên tinh").
@@ -115,17 +138,25 @@ TRẢ VỀ JSON:
 
 export const getSocialMemoryPrompt = (
   charName: string,
+  charDesc: string,
+  userName: string,
+  userDesc: string,
+  charPersona: string,
+  userPersona: string,
   worldGenesis: any,
   loreAnalysis: any,
   language: string = 'Tiếng Việt'
 ): string => {
-  return `Dựa trên:
-- Nhân vật chính: ${charName}
+  return `Dựa trên thông tin chi tiết:
+- Nhân vật chính: ${charName} (${charDesc})
+- Tính cách & Cốt truyện nhân vật: ${charPersona}
+- Người chơi: ${userName} (${userDesc})
+- Vai trò & Tính cách người chơi: ${userPersona}
 - Thế giới: ${worldGenesis.worldDetail || "Chưa rõ"}
 - Thể loại: ${loreAnalysis.genre || "Chưa rõ"}
 - Xung đột chính: ${loreAnalysis.mainConflict || "Chưa rõ"}
 
-TẠO RA 3 NPC QUAN TRỌNG đối với ${charName}:
+TẠO RA 3-5 NPC QUAN TRỌNG đối với ${charName} HOẶC ${userName}:
 BẮT BUỘC trả lời bằng ngôn ngữ: ${language.toUpperCase()}.
 
 YÊU CẦU:
@@ -133,21 +164,35 @@ YÊU CẦU:
   {
     "id": "string",
     "name": "Tên phù hợp văn hoá & thể loại",
-    "type": "Vai trò cụ thể (vợ cũ, thư ký, sư huynh, thủ lĩnh thú nhân, đội trưởng chiến hạm, ...)",
+    "type": "Vai trò cụ thể (vợ cũ, thư ký, sư huynh, thủ lĩnh thú nhân, đội trưởng chiến hạm, hàng xóm, chủ nợ...)",
     "affinityWithChar": 0–100,
     "relationshipStatus": "Thân thiết/Bình thường/Căng thẳng/Xa cách",
-    "personalNotes": "Ghi chú thầm kín/bí mật của nhân vật này đối với ${charName} (BẮT BUỘC CÓ)",
+    "personalNotes": "Ghi chú thầm kín/bí mật của nhân vật này đối với ${charName} hoặc ${userName} (BẮT BUỘC CÓ). Ví dụ: 'Thương hại nhưng không dám nói', 'Lợi dụng để thăng tiến'...",
     "avatar": "tạm để trống hoặc emoji"
   }
-- Quan hệ & vai trò phải phù hợp với genre (cổ đại, tiên hiệp, ABO, thú nhân, tinh tế, hiện đại,...).
+- Quan hệ & vai trò phải cực kỳ phù hợp với cốt truyện, tính cách nhân vật và thể loại (cổ đại, tiên hiệp, ABO, thú nhân, tinh tế, hiện đại,...).
+- Đảm bảo các NPC tạo ra sự phong phú cho câu chuyện (có người giúp đỡ, có người cản trở, có người trung lập).
 
 TRẢ VỀ JSON:
 { "relations": [ ... ] }`;
 };
 
-export const getEconomyPrompt = (worldGenesis: any, language: string = 'Tiếng Việt'): string => {
-  return `Dựa trên thế giới:
-"${worldGenesis.worldDetail || "Chưa rõ"}"
+export const getEconomyPrompt = (
+  charName: string,
+  charDesc: string,
+  userName: string,
+  userDesc: string,
+  charPersona: string,
+  userPersona: string,
+  worldGenesis: any,
+  language: string = 'Tiếng Việt'
+): string => {
+  return `Dựa trên thông tin chi tiết:
+- Nhân vật chính: ${charName} (${charDesc})
+- Tính cách & Cốt truyện nhân vật: ${charPersona}
+- Người chơi: ${userName} (${userDesc})
+- Vai trò & Tính cách người chơi: ${userPersona}
+- Thế giới: "${worldGenesis.worldDetail || "Chưa rõ"}"
 
 Hãy thiết kế hệ thống kinh tế CƠ BẢN:
 BẮT BUỘC trả lời bằng ngôn ngữ: ${language.toUpperCase()}.
@@ -171,13 +216,20 @@ TRẢ VỀ JSON:
 };
 
 export const getOnIdleThoughtPrompt = (
-  charName: string,
-  charDesc: string
+  character: Character,
+  diary: any[] = []
 ): string => {
-  return `Nhân vật: ${charName}
-Mô tả: ${charDesc}
+  const diaryContext = diary.length > 0 
+    ? `\n[NHẬT KÝ THẦM KÍN - KÝ ỨC QUAN TRỌNG]:\n${diary.slice(-5).map(d => `- Ngày ${new Date(d.date).toLocaleDateString()}: ${d.content}`).join('\n')}`
+    : '';
 
-Hãy viết một suy nghĩ ngắn (dưới 15 từ) của nhân vật trong đầu lúc này dựa trên lịch sử trò chuyện.
+  const financialStatus = `\n[TÀI CHÍNH]: ${character.money?.toLocaleString()} ${character.world?.currencyName || "Xu"}
+${(character.money || 0) < 0 ? "⚠️ BẠN ĐANG NỢ! Bạn cảm thấy vô cùng áp lực và lo lắng về tiền bạc." : ""}`;
+
+  return `Nhân vật: ${character.name}
+Mô tả: ${character.description}${diaryContext}${financialStatus}
+
+Hãy viết một suy nghĩ ngắn (dưới 15 từ) của nhân vật trong đầu lúc này dựa trên lịch sử trò chuyện, nhật ký ký ức và tình trạng tài chính.
 Cũng xác định tâm trạng (mood) phù hợp: "happy", "sad", "angry", "love", "neutral".
 
 ⚠️ BẮT BUỘC: Hoàn tất câu trả lời một cách trọn vẹn, không để bị cắt ngang.
@@ -187,31 +239,51 @@ JSON: { "text": "...", "mood": "..." }`;
 
 export const getInitialAssetsPrompt = (
   charName: string,
+  charDesc: string,
   userName: string,
+  userDesc: string,
+  charPersona: string,
+  userPersona: string,
+  charAppearance: string,
+  userAppearance: string,
+  firstMessage: string,
   worldGenesis: any,
   loreAnalysis: any,
   language: string = 'Tiếng Việt'
 ): string => {
-  return `Dựa trên:
-- Nhân vật chính: ${charName}
-- Người chơi: ${userName}
+  return `Dựa trên thông tin chi tiết:
+- Nhân vật chính: ${charName} (${charDesc})
+- Tính cách & Cốt truyện nhân vật: ${charPersona}
+- Ngoại hình nhân vật: ${charAppearance}
+- Lời mở đầu của nhân vật: "${firstMessage}"
+- Người chơi: ${userName} (${userDesc})
+- Vai trò & Tính cách người chơi: ${userPersona}
+- Ngoại hình người chơi: ${userAppearance}
 - Thế giới: ${worldGenesis.worldDetail || "Chưa rõ"}
 - Thể loại: ${loreAnalysis.genre || "Chưa rõ"}
 
-Hãy thiết kế tài sản, bất động sản và dòng tiền BAN ĐẦU.
+Hãy thiết kế tài sản, bất động sản, dòng tiền và vật phẩm BAN ĐẦU một cách CỰC KỲ CHI TIẾT VÀ HỢP LÝ. AI phải tự suy luận dựa trên hoàn cảnh nhân vật nếu không có sẵn.
 
-⚠️ QUY TẮC QUAN TRỌNG:
-- BẮT BUỘC trả lời bằng ngôn ngữ: ${language.toUpperCase()}.
-- Xác định nơi ở (Properties): Dựa vào cốt truyện, nếu ${charName} và ${userName} sống chung thì tạo 1 bất động sản chung. Nếu ${charName} giàu thì tạo nhiều nhà. Nếu ${userName} nghèo/sinh viên thì để ở trọ/ký túc xá.
-- Thu nhập (Income): Phải có nguồn tiền thực tế (lương, kinh doanh, trợ cấp...).
-- Chi tiêu (Expenses): Phải có các khoản chi thực tế (tiền nhà, ăn uống, bảo trì...).
+⚠️ TIÊU CHUẨN CHI TIẾT (SƯỜN MẪU):
+- Properties (Nơi ở): Không chỉ ghi "Nhà", hãy ghi "Căn hộ chung cư cũ 45m2, tường bong tróc" hoặc "Biệt thự ven sông, nội thất dát vàng".
+- Income (Dòng tiền vào): Ghi rõ nguồn (Lương văn phòng, Tiền thuê nhà, Trợ cấp gia đình...).
+- Expenses (Dòng tiền ra): Các khoản chi cố định (Tiền thuốc men cho mẹ, Tiền trả góp xe, Tiền ăn uống...).
+- Assets (Tài sản): Liệt kê vật phẩm có giá trị sử dụng (Xe máy Wave cũ, Laptop gaming, Đồng hồ hiệu...).
+- Debts (Nợ nần): Nếu nhân vật nghèo/vất vả, hãy thêm các khoản nợ (Nợ tín dụng, Nợ xã hội đen, Nợ bạn bè...).
+- Money (Tiền mặt): Con số phải khớp với logic chi tiêu/thu nhập.
+- TÀI CHÍNH CHI TIẾT: Phải bao gồm cả các khoản nợ, các khoản đầu tư (nếu có), và các tài sản vô hình (nếu có).
+- SO SÁNH ĐỊA VỊ: Đảm bảo sự chênh lệch giàu nghèo giữa các nhân vật (nếu có trong cốt truyện) được thể hiện rõ qua tài sản và thu nhập.
 
 YÊU CẦU JSON:
 {
   "charMoney": 100000,
   "userMoney": 1000,
-  "charInventory": [...],
-  "userInventory": [...],
+  "charInventory": [
+    { "id": "item1", "name": "Tên vật phẩm", "description": "Mô tả chi tiết tình trạng", "value": 50000, "quantity": 1 }
+  ],
+  "userInventory": [
+    { "id": "item2", "name": "Tên vật phẩm", "description": "Mô tả chi tiết tình trạng", "value": 100000, "quantity": 1 }
+  ],
   "charProperties": [
     { "id": "p1", "name": "Tên nhà/nơi ở", "description": "Mô tả chi tiết (Ví dụ: Căn biệt thự xa hoa, Phòng trọ nhỏ...)", "value": 500000, "isShared": false }
   ],

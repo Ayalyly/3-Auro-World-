@@ -41,6 +41,7 @@ const RealisticPhoneView: React.FC<PhoneViewProps> = ({
   const [userMessageInput, setUserMessageInput] = useState('');
   const [isUserSending, setIsUserSending] = useState(false);
   const userMessagesEndRef = useRef<HTMLDivElement>(null);
+  const chatMessagesEndRef = useRef<HTMLDivElement>(null);
   
   // Transfer Modal State
   const [showTransferModal, setShowTransferModal] = useState(false);
@@ -71,6 +72,20 @@ const RealisticPhoneView: React.FC<PhoneViewProps> = ({
   const [selectedRelation, setSelectedRelation] = useState<any>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isLoadingChat, setIsLoadingChat] = useState(false);
+  
+  // Tự động cuộn xuống khi có tin nhắn mới trong chatDetail
+  useEffect(() => {
+    if (tab === 'chatDetail' && chatMessagesEndRef.current) {
+      chatMessagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [selectedRelation?.history, tab]);
+
+  // Tự động cuộn xuống khi có tin nhắn mới trong userMessages
+  useEffect(() => {
+    if (tab === 'userMessages' && userMessagesEndRef.current) {
+      userMessagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, tab]);
   const [assetTab, setAssetTab] = useState<'overview' | 'cashflow' | 'properties'>('overview');
   const [isAutoReplying, setIsAutoReplying] = useState(settings.behavior?.npcAutoReply || false);
   const [editNotes, setEditNotes] = useState('');
@@ -400,7 +415,9 @@ const RealisticPhoneView: React.FC<PhoneViewProps> = ({
             selectedRelation.type,
             selectedRelation.history || [],
             selectedRelation.affinityWithChar || 50,
-            selectedRelation.personalNotes || ''
+            selectedRelation.personalNotes || '',
+            'vi',
+            characterRef.current.relations || []
         );
         if (nextMsg) {
              const newMsg = { ...nextMsg, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) };
@@ -931,16 +948,16 @@ const RealisticPhoneView: React.FC<PhoneViewProps> = ({
                     <div className="w-8"></div>
                 </div>
 
-                <div className="flex-1 p-4 overflow-y-auto custom-scrollbar flex flex-col">
+                <div className="flex-1 p-4 overflow-y-auto custom-scrollbar flex flex-col min-h-0">
                   {messages && messages.length > 0 ? (
                     messages.filter(m => m.sender === 'USER' || m.sender === 'AI').map((msg, idx) => {
                       const isFromNPC = msg.sender === 'AI';
                       return (
-                        <div key={msg.id || idx} className={`flex ${isFromNPC ? 'justify-start' : 'justify-end'} mb-4`}>
+                        <div key={msg.id || idx} className={`flex ${isFromNPC ? 'justify-start' : 'justify-end'} mb-4 shrink-0`}>
                           {isFromNPC && (
                             <img src={character.avatar} className="w-8 h-8 rounded-full mr-2 self-end border border-white/10" />
                           )}
-                          <div className={`max-w-[75%] p-3 px-4 rounded-2xl text-[11px] ${
+                          <div className={`max-w-[75%] p-3 px-4 rounded-2xl text-[11px] shadow-sm ${
                             isFromNPC 
                               ? 'bg-slate-800 text-slate-200 rounded-bl-none' 
                               : 'bg-emerald-600 text-white rounded-br-none'
@@ -956,7 +973,7 @@ const RealisticPhoneView: React.FC<PhoneViewProps> = ({
                   <div ref={userMessagesEndRef} />
                 </div>
                 
-                <div className="p-3 bg-[#131320] border-t border-white/5 flex gap-2 items-center safe-pb">
+                <div className="p-3 bg-[#131320] border-t border-white/5 flex gap-2 items-center shrink-0 mb-2">
                   <input 
                     type="text"
                     value={userMessageInput}
@@ -1328,24 +1345,29 @@ const RealisticPhoneView: React.FC<PhoneViewProps> = ({
              </div>
           )}
           
-          {/* ✅ KHU VỰC CHAT ĐÃ SỬA - CUỘN MƯỢT */}
+          {/* ✅ KHU VỰC CHAT ĐÃ SỬA - CUỘN MƯỢT & CỐ ĐỊNH INPUT */}
           {tab === 'chatDetail' && selectedRelation && (
-             <div className="flex-1 flex flex-col bg-[#0F0F1A] animate-in slide-in-from-right duration-300">
+             <div className="flex-1 flex flex-col bg-[#0F0F1A] animate-in slide-in-from-right duration-300 overflow-hidden h-full max-h-full">
                 {/* ✅ ĐẢM BẢO CUỘN ĐƯỢC */}
-                <div className="flex-1 p-4 overflow-y-auto custom-scrollbar flex flex-col">
+                <div className="flex-1 p-4 overflow-y-auto custom-scrollbar flex flex-col min-h-0">
                   {Array.isArray(selectedRelation.history) && selectedRelation.history.length > 0 ? (
                     // ✅ HIỂN THỊ THEO THỨ TỰ TỰ NHIÊN - CHIA 2 BÊN
                     selectedRelation.history.map((msg, idx) => {
                       if (!msg) return null;
                       // NPC gửi thì bên TRÁI, Character gửi thì bên PHẢI
-                      const isFromNPC = msg.sender === selectedRelation.name || msg.sender === 'NPC';
+                      const isFromNPC = msg.sender === 'NPC' || msg.sender === selectedRelation.name;
+                      const isFromChar = msg.sender === 'CHAR' || msg.sender === character.name;
+                      
+                      // Mặc định nếu không xác định được thì NPC bên trái, Char bên phải
+                      const alignLeft = isFromNPC || (!isFromChar && msg.sender !== 'USER');
+                      
                       return (
-                        <div key={idx} className={`flex ${isFromNPC ? 'justify-start' : 'justify-end'} mb-4`}>
-                          {isFromNPC && (
+                        <div key={idx} className={`flex ${alignLeft ? 'justify-start' : 'justify-end'} mb-4 shrink-0`}>
+                          {alignLeft && (
                             <img src={selectedRelation.avatar} className="w-8 h-8 rounded-full mr-2 self-end border border-white/10" />
                           )}
-                          <div className={`max-w-[75%] p-3 px-4 rounded-2xl text-[11px] ${
-                            isFromNPC 
+                          <div className={`max-w-[75%] p-3 px-4 rounded-2xl text-[11px] shadow-sm ${
+                            alignLeft 
                               ? 'bg-slate-800 text-slate-200 rounded-bl-none' 
                               : 'bg-indigo-600 text-white rounded-br-none'
                           }`}>
@@ -1359,19 +1381,20 @@ const RealisticPhoneView: React.FC<PhoneViewProps> = ({
                   )}
                   
                   {isLoadingChat && (
-                    <div className="flex items-center gap-2 px-4 py-3 bg-white/5 rounded-2xl rounded-bl-none self-start w-fit animate-pulse mt-2">
+                    <div className="flex items-center gap-2 px-4 py-3 bg-white/5 rounded-2xl rounded-bl-none self-start w-fit animate-pulse mt-2 shrink-0">
                       <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"></div>
                       <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-100"></div>
                       <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-200"></div>
                     </div>
                   )}
+                  <div ref={chatMessagesEndRef} />
                 </div>
                 
-                {/* KHU VỰC NHẬP LIỆU */}
-                <div className="p-3 bg-[#131320] border-t border-white/5 flex gap-2 items-center safe-pb">
+                {/* KHU VỰC NHẬP LIỆU - CỐ ĐỊNH DƯỚI CÙNG */}
+                <div className="p-3 bg-[#131320] border-t border-white/5 flex gap-2 items-center shrink-0 mb-2">
                   <button 
                     onClick={() => setIsAutoReplying(!isAutoReplying)} 
-                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all border ${
+                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all border shrink-0 ${
                       isAutoReplying 
                         ? 'bg-indigo-500 text-white border-indigo-400 animate-pulse shadow-[0_0_15px_rgba(99,102,241,0.5)]' 
                         : 'bg-white/5 text-slate-500 border-white/5 hover:bg-white/10'
@@ -1380,7 +1403,7 @@ const RealisticPhoneView: React.FC<PhoneViewProps> = ({
                   >
                     <i className="fa-solid fa-robot text-sm"></i>
                   </button>
-                  <div className="flex-1 h-10 bg-white/5 rounded-full border border-white/5 flex items-center px-4 text-[10px] text-slate-500 italic">
+                  <div className="flex-1 h-10 bg-white/5 rounded-full border border-white/5 flex items-center px-4 text-[10px] text-slate-500 italic truncate">
                     {t('phone.chat.spy')}
                   </div>
                   <button 
@@ -1394,7 +1417,15 @@ const RealisticPhoneView: React.FC<PhoneViewProps> = ({
                           selectedRelation.type,
                           selectedRelation.history || [],
                           selectedRelation.affinityWithChar || 50,
-                          selectedRelation.personalNotes || ''
+                          selectedRelation.personalNotes || '',
+                          'vi',
+                          characterRef.current.relations || [],
+                          characterRef.current.diary || [],
+                          { 
+                            name: user?.name || 'Người dùng', 
+                            description: user?.description || '', 
+                            relationshipScore: characterRef.current.relationshipScore || 50 
+                          }
                       );
                       if (nextMsg) {
                            const newMsg = { ...nextMsg, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) };
@@ -1406,7 +1437,7 @@ const RealisticPhoneView: React.FC<PhoneViewProps> = ({
                       setIsLoadingChat(false);
                     }}
                     disabled={isLoadingChat}
-                    className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white shadow-lg hover:bg-indigo-500 active:scale-95 transition-all disabled:opacity-50"
+                    className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white shadow-lg hover:bg-indigo-500 active:scale-95 transition-all disabled:opacity-50 shrink-0"
                   >
                     <i className="fa-solid fa-paper-plane text-xs"></i>
                   </button>

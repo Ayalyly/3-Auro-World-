@@ -929,7 +929,10 @@ const HomeRoomView: React.FC<HomeRoomViewProps> = ({ character, user, onClose, o
           messages,
           relationship,
           items.map((i: any) => i.name),
-          character.openingMessage || ""
+          character.openingMessage || "",
+          character.diary || [],
+          character.money || 0,
+          character.world?.currencyName || "Xu"
       );
       setCharacterSpokenText(response);
       // Removed addCharacterMessageToChat(response) to prevent leakage to main chat
@@ -1057,7 +1060,12 @@ const HomeRoomView: React.FC<HomeRoomViewProps> = ({ character, user, onClose, o
       setMoodIcon("💭");
 
       try {
-          const result = await geminiRef.current.generateOnIdleThought(character.name, character.description, messages, settings);
+          const result = await geminiRef.current.generateOnIdleThought(
+            character, 
+            messages, 
+            settings,
+            character.diary || []
+          );
           setThought(result.text);
 
           let icon = "😐";

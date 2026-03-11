@@ -1,9 +1,15 @@
 export const getDiaryEntryPrompt = (
   charName: string,
   pastDiarySummary: string,
-  chatText: string
+  chatText: string,
+  money: number = 0,
+  currency: string = "Xu"
 ): string => {
+  const financialStatus = `\n[TÀI CHÍNH]: ${money.toLocaleString()} ${currency}
+${money < 0 ? "⚠️ BẠN ĐANG NỢ! Hãy thể hiện sự lo lắng về tiền bạc trong nhật ký nếu phù hợp." : ""}`;
+
   return `Bạn là nội tâm của ${charName}.
+${financialStatus}
 
 [NHẬT KÝ CŨ]
 ${pastDiarySummary}

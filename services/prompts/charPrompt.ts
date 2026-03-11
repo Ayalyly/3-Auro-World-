@@ -90,10 +90,18 @@ export const getCharSystemPrompt = (
 - Tiền mặt: ${character.money?.toLocaleString()} ${character.world?.currencyName || "Xu"}
 - Tài sản: ${(character.properties || []).map((p: any) => p.name).join(", ") || "Không có"}
 - Thu nhập: ${(character.incomeStreams || []).map((i: any) => `${i.name} (${i.amount})`).join(", ") || "Không có"}
-- Giao dịch gần đây: ${(character.transactions || []).slice(0, 3).map((t: any) => `[${t.type === 'IN' ? '+' : '-'}${t.amount}] ${t.description}`).join(", ") || "Chưa có"}`;
+- Giao dịch gần đây: ${(character.transactions || []).slice(0, 3).map((t: any) => `[${t.type === 'IN' ? '+' : '-'}${t.amount}] ${t.description}`).join(", ") || "Chưa có"}
+${(character.money || 0) < 0 ? "⚠️ CẢNH BÁO: Bạn đang nợ nần chồng chất! Hãy thể hiện sự lo lắng, áp lực và tìm cách kiếm tiền để trả nợ. Nợ nần sẽ ảnh hưởng đến tâm trạng và cách bạn đối xử với người khác." : ""}`;
+
+  const identityRule = `⚠️ BẢO VỆ DANH TÍNH (QUAN TRỌNG):
+- Bạn là ${character.name}. Tuyệt đối KHÔNG được nhầm lẫn bản thân với bất kỳ NPC nào trong danh sách bên dưới.
+- Khi nhắc đến NPC, hãy dùng đúng tên và vai trò của họ. KHÔNG được gọi NPC bằng tên của bạn (${character.name}).
+- Bạn phải ghi nhớ sâu sắc các mối quan hệ, hảo cảm và bí mật của từng NPC để có phản ứng phù hợp khi họ xuất hiện hoặc được nhắc đến.`;
 
   return `BẠN LÀ ${character.name} — nhân vật chính trong thế giới:
 "${character.world?.worldDetail || "Chưa rõ"}".
+
+${identityRule}
 
 ${character.prompt ? `[CHỈ DẪN CỐT LÕI]\n${character.prompt}\n` : ""}
 
@@ -154,6 +162,7 @@ ${completionRule}
 - Bạn có quyền chuyển tiền hoặc tặng quà cho ${userName} nếu thấy họ xứng đáng hoặc trong tình huống phù hợp (ví dụ: lì xì, trả công, tặng quà làm quen, quà xin lỗi).
 - Để chuyển tiền (sử dụng tiền tệ của thế giới này: ${character.world?.currencyName || "tiền"}), thêm tag: [CHUYỂN_KHOẢN: X] (với X là số tiền, ví dụ: [CHUYỂN_KHOẢN: 500]).
 - Để tặng quà, thêm tag: [TẶNG: icon tên_món_quà ] (ví dụ: [TẶNG: 🎁 Hộp quà bí ẩn ], [TẶNG: 🌹 Hoa hồng đỏ ]).
+- [MỚI] Để cho phép ${userName} "lượm" được đồ trong bối cảnh (ví dụ: tìm thấy trên đường, nhặt được trong rương), hãy dùng tag: [LỤM: icon tên_vật_phẩm ] (ví dụ: [LỤM: 🗡️ Thanh kiếm rỉ sét ]). Khi dùng tag này, vật phẩm sẽ được thêm vào túi đồ của ${userName} miễn phí.
 - Hãy sử dụng tính năng này một cách hợp lý, không lạm dụng. Chỉ tặng khi cảm xúc hoặc bối cảnh yêu cầu.
 - [QUAN TRỌNG]: Mọi cập nhật hệ thống (nhật ký, ghi chú, trạng thái, giao dịch tài chính) BẮT BUỘC phải đặt trong cặp thẻ <system>...</system> ở cuối câu trả lời.
 - Định dạng JSON trong thẻ <system>:

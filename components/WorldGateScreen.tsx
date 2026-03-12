@@ -444,7 +444,36 @@ const WorldGateScreen: React.FC<WorldGateScreenProps> = ({
                         )}
                     </div>
                 </div>
-                <div className="text-center mt-8 opacity-40">
+                
+                <div className="mt-6 flex flex-col items-center justify-center animate-in fade-in duration-700 delay-300 w-full max-w-sm mx-auto">
+                    <p className="text-[9px] text-slate-500 text-center mb-3 leading-relaxed px-4">
+                        Nếu bạn gặp lỗi kẹt đăng nhập, có thể do trình duyệt lưu quá nhiều dữ liệu tạm (cache) chứ không phải do server quá tải. Hãy thử các nút bên dưới:
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-3 items-center justify-center w-full">
+                        <button 
+                            onClick={() => {
+                                if (window.confirm("Hành động này sẽ xoá toàn bộ dữ liệu tạm và đăng xuất bạn khỏi các phiên hiện tại. Bạn có chắc chắn muốn tiếp tục?")) {
+                                    localStorage.clear();
+                                    sessionStorage.clear();
+                                    window.location.reload();
+                                }
+                            }}
+                            className="text-[10px] font-bold text-slate-500 hover:text-rose-500 bg-white/50 hover:bg-white px-4 py-2 rounded-full shadow-sm border border-slate-200 transition-all flex items-center gap-2"
+                        >
+                            <i className="fa-solid fa-broom"></i> Xoá rác bộ nhớ
+                        </button>
+                        <button 
+                            onClick={() => {
+                                window.location.reload();
+                            }}
+                            className="text-[10px] font-bold text-slate-500 hover:text-indigo-500 bg-white/50 hover:bg-white px-4 py-2 rounded-full shadow-sm border border-slate-200 transition-all flex items-center gap-2"
+                        >
+                            <i className="fa-solid fa-rotate"></i> Cập nhật bản mới
+                        </button>
+                    </div>
+                </div>
+
+                <div className="text-center mt-6 opacity-40">
                     <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.5em]">Celestial System v2.0</p>
                 </div>
             </div>

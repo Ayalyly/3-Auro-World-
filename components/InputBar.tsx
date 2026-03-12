@@ -122,10 +122,16 @@ const InputBar: React.FC<InputBarProps> = ({ onSend, onStop, isGenerating, disab
       setShowTransferModal(false);
   };
 
+  const isImmersive = theme?.chatLayoutStyle === 'immersive' || theme?.chatLayoutStyle === 'immersive-short';
+
   return (
     // UPDATED: Added 'relative' to ensure absolute menu positions correctly
     <div 
-      className="w-full z-50 px-2 py-3 bg-white border-t border-slate-100 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] relative"
+      className={`w-full z-50 px-2 py-3 relative ${
+        isImmersive 
+          ? 'bg-black/20 backdrop-blur-xl border-t border-white/10 shadow-[0_-5px_20px_rgba(0,0,0,0.1)]' 
+          : 'bg-white border-t border-slate-100 shadow-[0_-5px_20px_rgba(0,0,0,0.05)]'
+      }`}
       style={{ fontFamily: theme?.fontFamily || 'inherit' }}
     >
       
@@ -220,7 +226,13 @@ const InputBar: React.FC<InputBarProps> = ({ onSend, onStop, isGenerating, disab
         <button 
            ref={buttonRef}
            onClick={() => setShowMenu(!showMenu)} 
-           className={`w-10 h-10 mb-0.5 rounded-2xl flex items-center justify-center transition-all shadow-sm active:scale-95 shrink-0 ${showMenu ? 'bg-indigo-600 text-white rotate-45' : 'bg-slate-200 text-slate-600 hover:text-indigo-600 border border-slate-300'}`}
+           className={`w-10 h-10 mb-0.5 rounded-2xl flex items-center justify-center transition-all shadow-sm active:scale-95 shrink-0 ${
+             showMenu 
+               ? 'bg-indigo-600 text-white rotate-45' 
+               : isImmersive
+                 ? 'bg-black/40 text-white/80 hover:text-white border border-white/10 hover:bg-black/60'
+                 : 'bg-slate-200 text-slate-600 hover:text-indigo-600 border border-slate-300'
+           }`}
         >
           <i className="fa-solid fa-plus text-sm"></i>
         </button>
@@ -229,13 +241,21 @@ const InputBar: React.FC<InputBarProps> = ({ onSend, onStop, isGenerating, disab
         <button 
            type="button"
            onClick={() => fileInputRef.current?.click()} 
-           className="w-10 h-10 mb-0.5 rounded-2xl bg-slate-100 border border-slate-200 text-slate-500 hover:text-indigo-600 hover:bg-white hover:shadow-sm transition-all flex items-center justify-center active:scale-95 shrink-0"
+           className={`w-10 h-10 mb-0.5 rounded-2xl transition-all flex items-center justify-center active:scale-95 shrink-0 ${
+             isImmersive
+               ? 'bg-black/40 border border-white/10 text-white/80 hover:text-white hover:bg-black/60 shadow-sm'
+               : 'bg-slate-100 border border-slate-200 text-slate-500 hover:text-indigo-600 hover:bg-white hover:shadow-sm'
+           }`}
         >
           <i className="fa-regular fa-image text-lg"></i>
         </button>
         
         {/* Input Text Area - FIXED STYLING */}
-        <div className="flex-1 bg-slate-100 rounded-[1.5rem] focus-within:bg-white focus-within:shadow-[0_0_15px_rgba(139,147,255,0.15)] transition-all flex items-center px-4 py-2 min-h-[48px]">
+        <div className={`flex-1 rounded-[1.5rem] transition-all flex items-center px-4 py-2 min-h-[48px] ${
+          isImmersive
+            ? 'bg-black/40 focus-within:bg-black/60 focus-within:shadow-[0_0_15px_rgba(255,255,255,0.1)] border border-white/10'
+            : 'bg-slate-100 focus-within:bg-white focus-within:shadow-[0_0_15px_rgba(139,147,255,0.15)]'
+        }`}>
           <textarea
             ref={textareaRef}
             value={inputValue}
@@ -243,7 +263,11 @@ const InputBar: React.FC<InputBarProps> = ({ onSend, onStop, isGenerating, disab
             placeholder={isApiKeyMissing ? "⚠️ Vui lòng nhập API Key để chat..." : "Nhắn tin... (gõ # để chọn vật phẩm)"}
             disabled={isActuallyDisabled}
             rows={1}
-            className="w-full bg-transparent border-none outline-none ring-0 focus:ring-0 text-sm text-slate-700 placeholder:text-slate-400 resize-none max-h-32 custom-scrollbar leading-6 py-1"
+            className={`w-full bg-transparent border-none outline-none ring-0 focus:ring-0 text-sm resize-none max-h-32 custom-scrollbar leading-6 py-1 ${
+              isImmersive
+                ? 'text-white placeholder:text-white/50'
+                : 'text-slate-700 placeholder:text-slate-400'
+            }`}
             style={{ 
               minHeight: '24px', 
               boxShadow: 'none',

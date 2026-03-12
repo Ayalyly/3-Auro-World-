@@ -90,6 +90,18 @@ const MainChatView: React.FC<MainChatViewProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [displayedMessages]);
 
+  const getYoutubeId = (url: string) => {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  };
+
+  const bgType = settings.theme.chatBgType || 'color';
+  const bgValue = settings.theme.chatBg || 'linear-gradient(135deg, #e0f2fe 0%, #dbeafe 50%, #f3e8ff 100%)';
+  const bgImage = settings.theme.chatBgImage;
+  const bgYoutubeId = getYoutubeId(settings.theme.chatBgYoutubeUrl || '');
+
   // New handler for sending messages that also checks for product proposals
   const handleSendMessage = async (text: string, images?: string[]) => {
     onSendMessage(text, images);
@@ -125,18 +137,49 @@ const MainChatView: React.FC<MainChatViewProps> = ({
       ref={containerRef}
       className="flex flex-col h-[100dvh] w-full overflow-hidden relative"
       style={{
-        background:
-          'linear-gradient(135deg, #e0f2fe 0%, #dbeafe 50%, #f3e8ff 100%)',
+        background: bgType === 'color' ? bgValue : bgType === 'image' && bgImage ? `url(${bgImage}) center/cover no-repeat` : '#000',
         fontFamily: settings.theme.fontFamily || 'inherit'
       }}
     >
-      <div id="animated-bg" className="absolute inset-0 opacity-20">
-        <div className="blob blob-1"></div>
-        <div className="blob blob-2"></div>
-        <div className="blob blob-3"></div>
-      </div>
+      {bgType === 'youtube' && bgYoutubeId && (
+        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+          <YouTube
+            videoId={bgYoutubeId}
+            opts={{
+              width: '100%',
+              height: '100%',
+              playerVars: {
+                autoplay: 1,
+                controls: 0,
+                disablekb: 1,
+                loop: 1,
+                playlist: bgYoutubeId,
+                modestbranding: 1,
+                mute: 1,
+                playsinline: 1
+              }
+            }}
+            className="w-[150vw] h-[150vh] -ml-[25vw] -mt-[25vh]" // Scale up to hide black bars and fill screen
+            iframeClassName="w-full h-full object-cover"
+          />
+        </div>
+      )}
 
-      <SettingsModal
+      {bgType === 'color' && (
+        <div id="animated-bg" className="absolute inset-0 opacity-20 z-0">
+          <div className="blob blob-1"></div>
+          <div className="blob blob-2"></div>
+          <div className="blob blob-3"></div>
+        </div>
+      )}
+
+      {/* Overlay for better readability if using image or video */}
+      {(bgType === 'image' || bgType === 'youtube') && (
+        <div className="absolute inset-0 bg-black/30 z-0 pointer-events-none"></div>
+      )}
+
+      <div className="relative z-10 flex flex-col h-full w-full">
+        <SettingsModal
         isOpen={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
         settings={settings}
@@ -172,8 +215,18 @@ const MainChatView: React.FC<MainChatViewProps> = ({
         setPlayingVideoId={setPlayingVideoId}
       />
 
-      <div className="flex-1 overflow-y-auto px-4 py-2 custom-scrollbar">
-        <AnimatePresence>
+      <div className="flex flex-col w-full flex-1 overflow-hidden">
+        {settings.theme.chatLayoutStyle === 'immersive-short' && (
+          <div className="h-[55vh] shrink-0 pointer-events-none"></div>
+        )}
+        <div 
+          className="flex-1 overflow-y-auto px-4 py-2 custom-scrollbar flex flex-col"
+          style={{
+            maskImage: settings.theme.chatLayoutStyle === 'immersive-short' ? 'linear-gradient(to bottom, transparent, black 10%, black)' : undefined,
+            WebkitMaskImage: settings.theme.chatLayoutStyle === 'immersive-short' ? 'linear-gradient(to bottom, transparent, black 10%, black)' : undefined
+          }}
+        >
+          <AnimatePresence>
           {playingVideoId && (
             <motion.div 
               drag={!isResizing}
@@ -255,10 +308,14 @@ const MainChatView: React.FC<MainChatViewProps> = ({
           )}
         </AnimatePresence>
 
+        {settings.theme.chatLayoutStyle === 'immersive' && (
+          <div className="flex-1"></div>
+        )}
+
         {displayedMessages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full opacity-50">
-            <i className="fa-solid fa-wind text-4xl text-slate-300 mb-2"></i>
-            <p className="text-xs text-slate-400">Bắt đầu câu chuyện...</p>
+            <i className={`fa-solid fa-wind text-4xl mb-2 ${(settings.theme.chatLayoutStyle === 'immersive' || settings.theme.chatLayoutStyle === 'immersive-short') ? 'text-white/50' : 'text-slate-300'}`}></i>
+            <p className={`text-xs ${(settings.theme.chatLayoutStyle === 'immersive' || settings.theme.chatLayoutStyle === 'immersive-short') ? 'text-white/50' : 'text-slate-400'}`}>Bắt đầu câu chuyện...</p>
           </div>
         )}
         {displayedMessages.map((msg) => (
@@ -337,6 +394,8 @@ const MainChatView: React.FC<MainChatViewProps> = ({
           <span>Chưa nhập API Key</span>
         </div>
       )}
+      </div>
+      </div>
     </div>
   );
 };

@@ -53,40 +53,11 @@ const ServerSelectorModal: React.FC<ServerSelectorModalProps> = ({
         </div>
 
         <div style={styles.serverList}>
-          <div style={styles.gridContainer}>
-            {servers.map((server) => {
-              const isSelected = selectedServerKey === server.key;
-              const isRecommended = server.key === recommendedKey;
-
-              return (
-                <div
-                  key={server.key}
-                  style={{
-                    ...styles.serverCard,
-                    borderColor: isSelected ? '#6366f1' : 'rgba(0,0,0,0.1)',
-                    background: isSelected
-                      ? 'linear-gradient(135deg, #f0f0ff 0%, #ffffff 100%)'
-                      : 'white',
-                  }}
-                  onClick={() => onSelectServer(server.key)}
-                >
-                  <div style={styles.cardHeader}>
-                    <div style={styles.cardTitleRow}>
-                      <span style={styles.serverEmoji}>{server.emoji}</span>
-                      <span style={styles.serverName}>{server.name}</span>
-                    </div>
-                    {isSelected && <span style={styles.checkmark}>✓</span>}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
             {/* CUSTOM SERVER OPTION */}
           <div
             style={{
               ...styles.serverCard,
-              marginTop: '8px',
+              marginBottom: '8px',
               borderColor: selectedServerKey === 'custom' ? '#6366f1' : 'rgba(0,0,0,0.1)',
               background: selectedServerKey === 'custom'
                 ? 'linear-gradient(135deg, #f0f0ff 0%, #ffffff 100%)'
@@ -117,6 +88,35 @@ const ServerSelectorModal: React.FC<ServerSelectorModalProps> = ({
                   </button>
               </div>
             )}
+          </div>
+
+          <div style={styles.gridContainer}>
+            {servers.map((server) => {
+              const isSelected = selectedServerKey === server.key;
+              const isRecommended = server.key === recommendedKey;
+
+              return (
+                <div
+                  key={server.key}
+                  style={{
+                    ...styles.serverCard,
+                    borderColor: isSelected ? '#6366f1' : 'rgba(0,0,0,0.1)',
+                    background: isSelected
+                      ? 'linear-gradient(135deg, #f0f0ff 0%, #ffffff 100%)'
+                      : 'white',
+                  }}
+                  onClick={() => onSelectServer(server.key)}
+                >
+                  <div style={styles.cardHeader}>
+                    <div style={styles.cardTitleRow}>
+                      <span style={styles.serverEmoji}>{server.emoji}</span>
+                      <span style={styles.serverName}>{server.name}</span>
+                    </div>
+                    {isSelected && <span style={styles.checkmark}>✓</span>}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

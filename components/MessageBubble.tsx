@@ -261,11 +261,17 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, character, userA
           {/* Only render bubble if there is something else to show */}
           {shouldShowBubble && (
               <div 
-                className={`px-5 py-3.5 relative transition-all w-full shadow-sm ${isAi ? 'chat-bubble-ai' : 'chat-bubble-user'}`}
+                className={`px-5 py-3.5 relative transition-all w-full shadow-sm ${
+                  theme.chatLayoutStyle === 'immersive-short'
+                    ? (isAi ? 'bg-white/40 backdrop-blur-md rounded-[20px_20px_20px_4px] border border-white/30 text-slate-900' : 'bg-black/40 backdrop-blur-md rounded-[20px_20px_4px_20px] border border-white/20 text-white')
+                    : theme.chatLayoutStyle === 'immersive'
+                      ? (isAi ? 'bg-white/90 backdrop-blur-md rounded-[20px_20px_20px_4px] border border-white/50 text-slate-800' : 'bg-black/80 backdrop-blur-md rounded-[20px_20px_4px_20px] border border-white/20 text-white')
+                      : (isAi ? 'chat-bubble-ai' : 'chat-bubble-user')
+                }`}
                 style={{ 
                   fontFamily: theme.fontFamily || 'inherit',
                   fontSize: theme.fontSize ? `${theme.fontSize}px` : 'inherit',
-                  color: isAi ? (theme.textColor || '#334155') : 'inherit' // User bubble usually has its own contrast
+                  color: (theme.chatLayoutStyle === 'immersive' || theme.chatLayoutStyle === 'immersive-short') ? undefined : (isAi ? (theme.textColor || '#334155') : 'inherit')
                 }}
               >
                 {/* Single Image (Legacy) */}

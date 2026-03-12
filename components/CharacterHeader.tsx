@@ -104,10 +104,17 @@ const CharacterHeader: React.FC<CharacterHeaderProps> = ({
   const [showYoutubeModal, setShowYoutubeModal] = useState(false);
   
   const currentBranchName = character.branches?.find(b => b.id === currentBranchId)?.name || (currentBranchId === 'main' ? "Nhánh chính" : "Nhánh ẩn");
+  const isImmersive = settings.theme?.chatLayoutStyle === 'immersive' || settings.theme?.chatLayoutStyle === 'immersive-short';
 
   return (
     // GLASS HEADER - Taller for bigger avatar
-    <div className="sticky top-0 z-40 bg-gradient-to-b from-white/95 to-blue-50/90 backdrop-blur-xl border-b border-white/50 px-4 py-3 shadow-sm animate-in slide-in-from-top-4 duration-500">
+    <div className={`sticky top-0 z-40 backdrop-blur-xl border-b px-4 py-3 shadow-sm animate-in slide-in-from-top-4 duration-500 ${
+      settings.theme?.chatLayoutStyle === 'immersive-short'
+        ? 'bg-gradient-to-b from-black/40 to-transparent border-white/5'
+        : settings.theme?.chatLayoutStyle === 'immersive'
+          ? 'bg-gradient-to-b from-black/60 to-black/40 border-white/10' 
+          : 'bg-gradient-to-b from-white/95 to-blue-50/90 border-white/50'
+    }`}>
       
       {showYoutubeModal && setPlayingVideoId && (
         <YoutubePlayerModal
@@ -154,7 +161,9 @@ const CharacterHeader: React.FC<CharacterHeaderProps> = ({
           <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5">
             {/* Tên nhân vật - Clickable */}
             <h1 
-                className="font-black text-[var(--text-main)] text-xl leading-tight truncate drop-shadow-sm pb-0.5 cursor-pointer hover:text-indigo-600 transition-colors"
+                className={`font-black text-xl leading-tight truncate drop-shadow-sm pb-0.5 cursor-pointer transition-colors ${
+                  isImmersive ? 'text-white hover:text-white/80' : 'text-[var(--text-main)] hover:text-indigo-600'
+                }`}
                 onClick={onOpenProfile}
                 title="Xem hồ sơ nhân vật"
             >
@@ -168,7 +177,11 @@ const CharacterHeader: React.FC<CharacterHeaderProps> = ({
             <div className="flex items-center gap-2">
                 <button 
                     onClick={() => setShowBranches(!showBranches)}
-                    className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-indigo-50 border border-indigo-100 text-[9px] font-bold text-indigo-500 uppercase hover:bg-indigo-100 transition-colors w-fit"
+                    className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-[9px] font-bold uppercase transition-colors w-fit ${
+                      isImmersive
+                        ? 'bg-black/40 border border-white/10 text-white/80 hover:bg-black/60 hover:text-white'
+                        : 'bg-indigo-50 border border-indigo-100 text-indigo-500 hover:bg-indigo-100'
+                    }`}
                 >
                     <i className="fa-solid fa-code-branch"></i>
                     <span className="truncate max-w-[60px]">{currentBranchName}</span>
@@ -192,14 +205,26 @@ const CharacterHeader: React.FC<CharacterHeaderProps> = ({
               {/* Youtube Player Button */}
               <button 
                 onClick={() => setShowYoutubeModal(true)}
-                className={`flex items-center justify-center w-9 h-9 rounded-full bg-white/60 border border-slate-200 hover:border-rose-200 hover:shadow-sm transition-all active:scale-90 ${playingVideoId ? 'text-rose-500 animate-pulse' : 'text-slate-500 hover:text-rose-500'}`}
+                className={`flex items-center justify-center w-9 h-9 rounded-full transition-all active:scale-90 ${
+                  isImmersive 
+                    ? 'bg-black/40 border border-white/10 hover:bg-black/60 hover:border-white/30 text-white/80 hover:text-white' 
+                    : 'bg-white/60 border border-slate-200 hover:border-rose-200 hover:shadow-sm text-slate-500 hover:text-rose-500'
+                } ${playingVideoId ? (isImmersive ? 'text-rose-400 animate-pulse' : 'text-rose-500 animate-pulse') : ''}`}
                 title="Phát nhạc YouTube"
               >
                 <i className="fa-solid fa-music text-sm"></i>
               </button>
 
               {/* Dashboard Button */}
-              <button onClick={onDashboard} className="flex items-center justify-center w-9 h-9 rounded-full bg-white/60 border border-slate-200 text-slate-500 hover:text-indigo-500 hover:border-indigo-100 hover:shadow-sm transition-all active:scale-90" title="Trung tâm điều hành">
+              <button 
+                onClick={onDashboard} 
+                className={`flex items-center justify-center w-9 h-9 rounded-full transition-all active:scale-90 ${
+                  isImmersive
+                    ? 'bg-black/40 border border-white/10 hover:bg-black/60 hover:border-white/30 text-white/80 hover:text-white'
+                    : 'bg-white/60 border border-slate-200 text-slate-500 hover:text-indigo-500 hover:border-indigo-100 hover:shadow-sm'
+                }`}
+                title="Trung tâm điều hành"
+              >
                   <i className="fa-solid fa-folder-open text-sm"></i>
               </button>
           </div>

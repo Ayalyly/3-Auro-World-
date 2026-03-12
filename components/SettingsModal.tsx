@@ -503,6 +503,128 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
               </div>
 
               <div>
+                <label className="text-xs font-bold text-slate-700 uppercase mb-2 block">Loại hình nền Chat</label>
+                <select 
+                  value={localSettings.theme.chatBgType || 'color'}
+                  onChange={e => {
+                    const updated = {
+                      ...localSettings, 
+                      theme: { ...localSettings.theme, chatBgType: e.target.value as 'color' | 'image' | 'youtube' }
+                    };
+                    setLocalSettings(updated);
+                    onSaveSettings(updated);
+                  }}
+                  className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 mb-3"
+                >
+                  <option value="color">Màu trơn</option>
+                  <option value="image">Hình ảnh</option>
+                  <option value="youtube">Video YouTube</option>
+                </select>
+
+                {(!localSettings.theme.chatBgType || localSettings.theme.chatBgType === 'color') && (
+                  <div className="flex items-center gap-3">
+                    <input 
+                      type="color" 
+                      value={localSettings.theme.chatBg || '#f4f6ff'}
+                      onChange={e => {
+                        const updated = {
+                          ...localSettings, 
+                          theme: { ...localSettings.theme, chatBg: e.target.value }
+                        };
+                        setLocalSettings(updated);
+                        onSaveSettings(updated);
+                      }}
+                      className="w-10 h-10 rounded-lg cursor-pointer border-none p-0 overflow-hidden"
+                    />
+                    <span className="text-xs font-mono text-slate-500">{localSettings.theme.chatBg || '#f4f6ff'}</span>
+                  </div>
+                )}
+
+                {localSettings.theme.chatBgType === 'image' && (
+                  <div className="space-y-2">
+                    <input 
+                      type="text" 
+                      placeholder="Nhập link hình ảnh (URL)..."
+                      value={localSettings.theme.chatBgImage || ''}
+                      onChange={e => {
+                        const updated = {
+                          ...localSettings, 
+                          theme: { ...localSettings.theme, chatBgImage: e.target.value }
+                        };
+                        setLocalSettings(updated);
+                        onSaveSettings(updated);
+                      }}
+                      className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-mono text-slate-700 outline-none focus:border-indigo-500"
+                    />
+                    <div className="relative">
+                      <input 
+                        type="file" 
+                        accept="image/*"
+                        onChange={e => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              const updated = {
+                                ...localSettings, 
+                                theme: { ...localSettings.theme, chatBgImage: reader.result as string }
+                              };
+                              setLocalSettings(updated);
+                              onSaveSettings(updated);
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      />
+                      <div className="w-full p-3 bg-indigo-50 border border-indigo-200 border-dashed rounded-xl text-xs font-bold text-indigo-600 text-center flex justify-center items-center gap-2 hover:bg-indigo-100 transition-colors">
+                        <i className="fa-solid fa-upload"></i> Hoặc tải ảnh lên từ máy
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {localSettings.theme.chatBgType === 'youtube' && (
+                  <div>
+                    <input 
+                      type="text" 
+                      placeholder="Nhập link YouTube (VD: https://www.youtube.com/watch?v=...)"
+                      value={localSettings.theme.chatBgYoutubeUrl || ''}
+                      onChange={e => {
+                        const updated = {
+                          ...localSettings, 
+                          theme: { ...localSettings.theme, chatBgYoutubeUrl: e.target.value }
+                        };
+                        setLocalSettings(updated);
+                        onSaveSettings(updated);
+                      }}
+                      className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-mono text-slate-700 outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 uppercase mb-2 block">Giao diện Chat</label>
+                <select 
+                  value={localSettings.theme.chatLayoutStyle || 'default'}
+                  onChange={e => {
+                    const updated = {
+                      ...localSettings, 
+                      theme: { ...localSettings.theme, chatLayoutStyle: e.target.value as 'default' | 'immersive' | 'immersive-short' }
+                    };
+                    setLocalSettings(updated);
+                    onSaveSettings(updated);
+                  }}
+                  className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-indigo-500"
+                >
+                  <option value="default">Mặc định (Nền xám/trắng)</option>
+                  <option value="immersive">Trong suốt (Ngắm nền)</option>
+                  <option value="immersive-short">Trong suốt (Cắt ngắn 1/3)</option>
+                </select>
+              </div>
+
+              <div>
                 <label className="text-xs font-bold text-slate-700 uppercase mb-2 block">Màu chữ chính</label>
                 <div className="flex items-center gap-3">
                   <input 

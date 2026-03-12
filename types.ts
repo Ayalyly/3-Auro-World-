@@ -163,7 +163,11 @@ export interface OrderHistory {
 
 export interface ThemeConfig {
   primaryColor: string;
-  chatBg: string;
+  chatBg: string; // Used as color if type is 'color'
+  chatBgType?: 'color' | 'image' | 'youtube';
+  chatBgImage?: string; // Base64 or URL
+  chatBgYoutubeUrl?: string; // YouTube video ID or URL
+  chatLayoutStyle?: 'default' | 'immersive' | 'immersive-short';
   userBubbleColor: string;
   aiBubbleColor: string;
   fontFamily?: string;

@@ -173,6 +173,7 @@ export interface ThemeConfig {
   fontFamily?: string;
   fontSize?: number;
   textColor?: string;
+  bubbleOpacity?: number; // New: Opacity for chat bubbles (0-100)
   customIcon?: string; // Base64 or URL for custom app icon
 }
 

@@ -503,6 +503,27 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
               </div>
 
               <div>
+                <div className="flex justify-between mb-2">
+                  <label className="text-xs font-bold text-slate-700 uppercase">Độ mờ bong bóng chat</label>
+                  <span className="text-xs font-mono text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">{localSettings.theme.bubbleOpacity !== undefined ? localSettings.theme.bubbleOpacity : 90}%</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="10" max="100" step="5"
+                  value={localSettings.theme.bubbleOpacity !== undefined ? localSettings.theme.bubbleOpacity : 90}
+                  onChange={e => {
+                    const updated = {
+                      ...localSettings, 
+                      theme: { ...localSettings.theme, bubbleOpacity: parseInt(e.target.value) }
+                    };
+                    setLocalSettings(updated);
+                    onSaveSettings(updated);
+                  }}
+                  className="w-full accent-indigo-600 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                />
+              </div>
+
+              <div>
                 <label className="text-xs font-bold text-slate-700 uppercase mb-2 block">Loại hình nền Chat</label>
                 <select 
                   value={localSettings.theme.chatBgType || 'color'}

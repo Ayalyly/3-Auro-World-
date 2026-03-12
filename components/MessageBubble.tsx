@@ -271,7 +271,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, character, userA
                 style={{ 
                   fontFamily: theme.fontFamily || 'inherit',
                   fontSize: theme.fontSize ? `${theme.fontSize}px` : 'inherit',
-                  color: (theme.chatLayoutStyle === 'immersive' || theme.chatLayoutStyle === 'immersive-short') ? undefined : (isAi ? (theme.textColor || '#334155') : 'inherit')
+                  color: (theme.chatLayoutStyle === 'immersive' || theme.chatLayoutStyle === 'immersive-short') ? undefined : (isAi ? (theme.textColor || '#334155') : 'inherit'),
+                  backgroundColor: theme.bubbleOpacity !== undefined ? (isAi ? `rgba(255, 255, 255, ${theme.bubbleOpacity / 100})` : `rgba(0, 0, 0, ${theme.bubbleOpacity / 100})`) : undefined
                 }}
               >
                 {/* Single Image (Legacy) */}

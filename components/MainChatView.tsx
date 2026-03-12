@@ -92,6 +92,16 @@ const MainChatView: React.FC<MainChatViewProps> = ({
 
   const getYoutubeId = (url: string) => {
     if (!url) return null;
+    
+    // Handle shorts specifically
+    if (url.includes('/shorts/')) {
+      const parts = url.split('/shorts/');
+      if (parts.length > 1) {
+        const idPart = parts[1].split(/[?#&]/)[0];
+        if (idPart.length === 11) return idPart;
+      }
+    }
+
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
     const match = url.match(regExp);
     return (match && match[2].length === 11) ? match[2] : null;

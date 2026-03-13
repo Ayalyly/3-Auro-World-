@@ -489,6 +489,7 @@ export interface Quest {
 export interface Memory {
   id: string;
   type: 'message' | 'image' | 'note';
+  category?: 'memory' | 'story' | 'situation';
   content: string;
   messageId?: string;
   timestamp: number;

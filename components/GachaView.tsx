@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UserProfile, Character, InventoryItem, AppView, Message, Sender, DiaryEntry, Memory } from '../types';
+import { UserProfile, Character, InventoryItem, AppView, Message, Memory } from '../types';
 import { GeminiService } from '../services/geminiService';
 
 interface GachaViewProps {
@@ -24,7 +24,7 @@ interface GachaReward {
   data?: any;
 }
 
-const BAG_COST = 2000;
+const BAG_COST = 500;
 
 const GachaView: React.FC<GachaViewProps> = ({
   user,
@@ -32,42 +32,56 @@ const GachaView: React.FC<GachaViewProps> = ({
   geminiService,
   onUpdateUser,
   onUpdateCharacter,
-  onAddMessage,
   onBack
 }) => {
-  const [isOpening, setIsOpening] = useState(false);
-  const [reward, setReward] = useState<GachaReward | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [phase, setPhase] = useState<'wish' | 'play'>('wish');
   const [wish, setWish] = useState<GachaRewardType | null>(null);
-  const [recentRewards, setRecentRewards] = useState<GachaReward[]>([]);
+  const [amount, setAmount] = useState<number>(1);
   const [bagsLeft, setBagsLeft] = useState(0);
-  const [isTearing, setIsTearing] = useState(false);
-  const [showWishModal, setShowWishModal] = useState(true);
-  const [comboCount, setComboCount] = useState(0);
+  const [recentRewards, setRecentRewards] = useState<GachaReward[]>([]);
+  const [currentReward, setCurrentReward] = useState<GachaReward | null>(null);
+  const [isOpening, setIsOpening] = useState(false);
+  const [isOpeningAll, setIsOpeningAll] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [comboMessage, setComboMessage] = useState<string | null>(null);
+  const [showInstructions, setShowInstructions] = useState(false);
 
-  const rewardTypes: { type: GachaRewardType; label: string; icon: string }[] = [
-    { type: 'furniture', label: 'Nội thất', icon: '🪑' },
-    { type: 'item', label: 'Vật phẩm', icon: '🎁' },
-    { type: 'story', label: 'Cốt truyện', icon: '📖' },
-    { type: 'memory', label: 'Kỷ niệm', icon: '💭' },
-    { type: 'situation', label: 'Tình huống', icon: '🎭' },
+  const rewardTypes: { type: GachaRewardType; label: string; icon: string; color: string }[] = [
+    { type: 'furniture', label: 'Nội thất', icon: '🪑', color: 'bg-[#4a4a4a]' },
+    { type: 'item', label: 'Vật phẩm', icon: '🎁', color: 'bg-[#4a4a4a]' },
+    { type: 'story', label: 'Cốt truyện', icon: '📖', color: 'bg-[#facc15]' },
+    { type: 'memory', label: 'Kỷ niệm', icon: '💭', color: 'bg-[#4a4a4a]' },
+    { type: 'situation', label: 'Tình huống', icon: '🎭', color: 'bg-[#4a4a4a]' },
   ];
 
-  const handleStartGame = (selectedWish: GachaRewardType) => {
-    if (user.auroCoins < BAG_COST) {
-      setError('Bạn không đủ Auro Coin!');
+  const showError = (msg: string) => {
+    setError(msg);
+    setTimeout(() => setError(null), 3000);
+  };
+
+  const handleStartGame = () => {
+    if (!wish) {
+      showError('Vui lòng chọn 1 nguyện vọng!');
       return;
     }
-    setWish(selectedWish);
-    setBagsLeft(1);
-    setShowWishModal(false);
-    onUpdateUser({ auroCoins: user.auroCoins - BAG_COST });
+    const totalCost = BAG_COST * amount;
+    if (user.auroCoins < totalCost) {
+      showError('Bạn không đủ Auro Coin!');
+      return;
+    }
+    
+    onUpdateUser({ auroCoins: user.auroCoins - totalCost });
+    setBagsLeft(amount);
+    setRecentRewards([]);
+    setCurrentReward(null);
+    setComboMessage(null);
+    setPhase('play');
   };
 
   const processReward = (result: GachaReward) => {
     if (result.type === 'item' || result.type === 'furniture') {
       const newItem: InventoryItem = {
-        id: `gacha_${Date.now()}`,
+        id: `gacha_${Date.now()}_${Math.random()}`,
         name: result.name,
         description: result.description,
         icon: result.icon || '🎁',
@@ -79,29 +93,28 @@ const GachaView: React.FC<GachaViewProps> = ({
         furnitureType: 'decor'
       };
       onUpdateUser({ inventory: [...(user.inventory || []), newItem] });
-    } else if (result.type === 'memory') {
+    } else if (result.type === 'memory' || result.type === 'story' || result.type === 'situation') {
       const newMemory: Memory = {
-        id: `mem_${Date.now()}`,
+        id: `mem_${Date.now()}_${Math.random()}`,
         type: 'note',
+        category: result.type,
         title: result.name,
         content: result.description,
         timestamp: Date.now()
       };
       onUpdateCharacter(character.id!, { memories: [...(character.memories || []), newMemory] });
-    } else if (result.type === 'story') {
-      const newEntry: DiaryEntry = {
-        date: Date.now(),
-        content: `[Cột truyện mới: ${result.name}] ${result.description}`,
-        mood: 'Hạnh phúc'
-      };
-      onUpdateCharacter(character.id!, { diary: [...(character.diary || []), newEntry] });
-    } else if (result.type === 'situation') {
-      onAddMessage({
-        id: `sys_${Date.now()}`,
-        text: `[TÌNH HUỐNG MỚI]: ${result.description}`,
-        sender: Sender.SYSTEM,
-        timestamp: Date.now()
-      });
+    }
+  };
+
+  const openSingleBag = async (): Promise<GachaReward | null> => {
+    try {
+      const selectedType = rewardTypes[Math.floor(Math.random() * rewardTypes.length)].type;
+      const result = await geminiService.generateGachaReward(character, selectedType);
+      processReward(result);
+      return result;
+    } catch (err) {
+      console.error("Gacha Error:", err);
+      return null;
     }
   };
 
@@ -109,241 +122,383 @@ const GachaView: React.FC<GachaViewProps> = ({
     if (isOpening || bagsLeft <= 0) return;
 
     setIsOpening(true);
-    setIsTearing(true);
-    setError(null);
+    setCurrentReward(null);
+    setComboMessage(null);
 
-    try {
-      // Logic xé túi mù
-      const selectedType = rewardTypes[Math.floor(Math.random() * rewardTypes.length)].type;
-      const result = await geminiService.generateGachaReward(character, selectedType);
+    const result = await openSingleBag();
+    
+    if (result) {
+      // Fake delay for animation
+      await new Promise(resolve => setTimeout(resolve, 800));
       
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Animation tear
-      setIsTearing(false);
-      await new Promise(resolve => setTimeout(resolve, 500)); // Reveal
-
-      setReward(result);
-      processReward(result);
+      setCurrentReward(result);
 
       let extraBags = 0;
       let comboMsg = "";
 
-      // Check Nguyện vọng (Wish match)
       if (result.type === wish) {
         extraBags += 1;
-        comboMsg = "✨ Trúng nguyện vọng! Tặng thêm 1 túi!";
+        comboMsg = "✨ Trúng nguyện vọng! +1 túi";
       }
 
-      // Check Gắp cặp (Pair match)
       const lastReward = recentRewards[recentRewards.length - 1];
       if (lastReward && lastReward.type === result.type) {
         extraBags += 1;
-        comboMsg += " 👯 Gắp được cặp! Tặng thêm 1 túi!";
+        comboMsg += (comboMsg ? "\n" : "") + "👯 Ghép cặp! +1 túi";
       }
 
       if (extraBags > 0) {
-        setComboCount(prev => prev + extraBags);
-        setBagsLeft(prev => prev + extraBags - 1);
+        setBagsLeft(prev => prev - 1 + extraBags);
+        setComboMessage(comboMsg);
       } else {
         setBagsLeft(prev => prev - 1);
       }
 
-      setRecentRewards(prev => [...prev, result]);
-
-    } catch (err) {
-      console.error("Gacha Error:", err);
-      setError('Có lỗi xảy ra. Vui lòng thử lại!');
-    } finally {
-      setIsOpening(false);
+      setRecentRewards(prev => [result, ...prev]);
+    } else {
+      showError('Có lỗi xảy ra. Vui lòng thử lại!');
     }
+    
+    setIsOpening(false);
   };
 
-  return (
-    <div className="fixed inset-0 z-[100] bg-[#1a1a1a] flex flex-col items-center justify-center p-6 text-white font-sans overflow-hidden">
-      {/* Background Decor */}
-      <div className="absolute inset-0 opacity-20 pointer-events-none">
-        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-yellow-900/20 via-transparent to-transparent"></div>
-        <div className="grid grid-cols-8 gap-4 p-4">
-          {Array.from({ length: 32 }).map((_, i) => (
-            <div key={i} className="text-4xl opacity-10 grayscale">🛍️</div>
-          ))}
-        </div>
-      </div>
+  const handleOpenAll = async () => {
+    if (isOpening || bagsLeft <= 0 || isOpeningAll) return;
+    
+    setIsOpeningAll(true);
+    setIsOpening(true);
+    setCurrentReward(null);
+    setComboMessage(null);
 
-      {/* Header */}
-      <div className="absolute top-8 left-8 z-20">
-        <button onClick={onBack} className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all">
-          <i className="fa-solid fa-chevron-left"></i>
-        </button>
-      </div>
+    let currentBagsLeft = bagsLeft;
+    let currentRecentRewards = [...recentRewards];
+    let totalExtraBags = 0;
 
-      <div className="absolute top-8 right-8 z-20 flex flex-col items-end gap-2">
-        <div className="flex items-center gap-3 bg-black/40 backdrop-blur-xl px-6 py-3 rounded-2xl border border-white/10 shadow-xl">
-          <img src="https://i.ibb.co/k6KC8zyN/media-1769361739.png" className="w-6 h-6" alt="Coin" />
-          <span className="text-xl font-black tracking-tight">{user.auroCoins.toLocaleString()}</span>
+    while (currentBagsLeft > 0) {
+      const result = await openSingleBag();
+      
+      if (result) {
+        let extraBags = 0;
+        if (result.type === wish) extraBags += 1;
+        
+        const lastReward = currentRecentRewards[0]; // We prepend now
+        if (lastReward && lastReward.type === result.type) extraBags += 1;
+
+        totalExtraBags += extraBags;
+        currentBagsLeft = currentBagsLeft - 1 + extraBags;
+        currentRecentRewards = [result, ...currentRecentRewards];
+        
+        setRecentRewards([...currentRecentRewards]);
+        setBagsLeft(currentBagsLeft);
+        setCurrentReward(result);
+        
+        await new Promise(resolve => setTimeout(resolve, 400));
+      } else {
+        showError('Lỗi khi mở. Đã dừng lại.');
+        break;
+      }
+    }
+
+    if (totalExtraBags > 0) {
+      setComboMessage(`🎉 Đã mở hết! Nhận thêm ${totalExtraBags} túi!`);
+    }
+
+    setIsOpeningAll(false);
+    setIsOpening(false);
+  };
+
+  // Render Wish Selection Phase
+  if (phase === 'wish') {
+    return (
+      <div className="fixed inset-0 z-[100] bg-[#222222] flex flex-col items-center p-6 text-white font-sans overflow-y-auto">
+        
+        {/* Header */}
+        <div className="w-full flex justify-between items-center mb-8 mt-4">
+          <button onClick={onBack} className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20">
+            <i className="fa-solid fa-chevron-left"></i>
+          </button>
+          <div className="flex items-center gap-2 bg-black/40 px-4 py-2 rounded-full border border-white/10">
+            <img src="https://i.ibb.co/k6KC8zyN/media-1769361739.png" className="w-5 h-5" alt="Coin" />
+            <span className="font-bold">{user.auroCoins.toLocaleString()}</span>
+          </div>
         </div>
-        {bagsLeft > 0 && (
-          <motion.div 
-            initial={{ scale: 0 }} animate={{ scale: 1 }}
-            className="bg-yellow-500 text-black px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg"
+
+        <div className="w-20 h-20 bg-yellow-500/20 rounded-full flex items-center justify-center text-4xl mb-6 text-yellow-500">
+          <i className="fa-solid fa-wand-magic-sparkles"></i>
+        </div>
+        
+        <h1 className="text-2xl font-black uppercase tracking-tight mb-2 text-center">Chọn Nguyện Vọng</h1>
+        <p className="text-xs text-white/50 mb-8 text-center uppercase tracking-widest px-4">
+          Nếu xé trúng loại này, bạn sẽ được tặng thêm túi!
+        </p>
+
+        <div className="grid grid-cols-2 gap-4 w-full max-w-sm mb-8">
+          {rewardTypes.map((rt) => {
+            const isSelected = wish === rt.type;
+            return (
+              <button
+                key={rt.type}
+                onClick={() => setWish(rt.type)}
+                className={`flex flex-col items-center justify-center p-6 rounded-3xl transition-all border-2 ${
+                  isSelected 
+                    ? 'bg-[#facc15] border-[#facc15] text-black scale-105 shadow-[0_0_20px_rgba(250,204,21,0.3)]' 
+                    : 'bg-[#333333] border-transparent text-white hover:bg-[#444444]'
+                }`}
+              >
+                <span className="text-4xl mb-3">{rt.icon}</span>
+                <span className="text-xs font-black uppercase">{rt.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Amount Selection */}
+        <div className="w-full max-w-sm bg-[#333333] rounded-3xl p-5 mb-8">
+          <p className="text-center text-xs text-white/50 uppercase tracking-widest mb-4">Số lượng túi mù</p>
+          <div className="flex justify-center gap-4">
+            {[1, 5, 10].map((amt) => (
+              <button
+                key={amt}
+                onClick={() => setAmount(amt)}
+                className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-lg transition-all ${
+                  amount === amt
+                    ? 'bg-white text-black shadow-lg scale-110'
+                    : 'bg-white/10 text-white hover:bg-white/20'
+                }`}
+              >
+                {amt}
+              </button>
+            ))}
+          </div>
+          <p className="text-center text-sm font-bold mt-5 text-yellow-500">
+            Chi phí: {(BAG_COST * amount).toLocaleString()} Xu
+          </p>
+        </div>
+
+        <div className="w-full max-w-sm flex flex-col gap-3 mt-auto pb-6">
+          <button 
+            onClick={handleStartGame}
+            className="w-full py-4 rounded-full bg-white text-black font-black uppercase tracking-widest hover:bg-gray-200 transition-all shadow-lg"
           >
-            Còn {bagsLeft} túi mù
+            Bắt đầu chơi
+          </button>
+          <button 
+            onClick={() => setShowInstructions(true)}
+            className="w-full py-3 rounded-full bg-transparent text-white/50 text-xs font-bold uppercase tracking-widest hover:text-white transition-all"
+          >
+            <i className="fa-solid fa-circle-info mr-2"></i> Hướng dẫn
+          </button>
+        </div>
+
+        {/* Instructions Modal */}
+        <AnimatePresence>
+          {showInstructions && (
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center p-6"
+            >
+              <div className="bg-[#222] w-full max-w-sm rounded-[2rem] p-6 border border-white/10 relative">
+                <button onClick={() => setShowInstructions(false)} className="absolute top-4 right-4 w-8 h-8 bg-white/10 rounded-full flex items-center justify-center">
+                  <i className="fa-solid fa-xmark"></i>
+                </button>
+                <h2 className="text-xl font-black uppercase mb-6 text-center text-yellow-500">Luật Chơi</h2>
+                <ul className="space-y-4 text-sm text-white/80">
+                  <li><strong className="text-white">1. Nguyện vọng:</strong> Chọn 1 loại trước khi xé. Trúng loại đó = +1 túi.</li>
+                  <li><strong className="text-white">2. Ghép cặp:</strong> Xé ra 2 món liên tiếp cùng loại = +1 túi.</li>
+                  <li><strong className="text-white">3. Mở hết:</strong> Tự động xé toàn bộ túi đang có.</li>
+                </ul>
+                <button onClick={() => setShowInstructions(false)} className="w-full mt-8 py-3 bg-white text-black rounded-full font-bold uppercase">Đã hiểu</button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {error && (
+          <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="fixed bottom-10 z-[150] bg-rose-500 text-white px-6 py-3 rounded-full text-xs font-black uppercase shadow-2xl">
+            {error}
           </motion.div>
         )}
       </div>
+    );
+  }
 
-      {/* Wish Selection Modal */}
-      <AnimatePresence>
-        {showWishModal && (
-          <motion.div 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[120] bg-black/90 backdrop-blur-md flex items-center justify-center p-6"
-          >
-            <div className="bg-[#2a2a2a] w-full max-w-md rounded-[3rem] p-8 border border-white/10 shadow-2xl text-center">
-              <div className="w-20 h-20 bg-yellow-500/20 rounded-full flex items-center justify-center text-4xl mx-auto mb-6 text-yellow-500">
-                <i className="fa-solid fa-wand-magic-sparkles"></i>
-              </div>
-              <h2 className="text-2xl font-black uppercase tracking-tighter mb-2">Chọn Nguyện Vọng</h2>
-              <p className="text-xs text-white/50 mb-8 uppercase tracking-widest">Nếu xé trúng loại này, bạn sẽ được tặng thêm túi!</p>
-              
-              <div className="grid grid-cols-2 gap-3 mb-8">
-                {rewardTypes.map((rt) => (
-                  <button
-                    key={rt.type}
-                    onClick={() => handleStartGame(rt.type)}
-                    className="flex flex-col items-center gap-2 p-4 rounded-3xl bg-white/5 border border-white/5 hover:bg-yellow-500 hover:text-black transition-all group"
-                  >
-                    <span className="text-3xl group-hover:scale-125 transition-transform">{rt.icon}</span>
-                    <span className="text-[10px] font-black uppercase">{rt.label}</span>
-                  </button>
-                ))}
-              </div>
+  // Render Play Phase
+  return (
+    <div className="fixed inset-0 z-[100] flex flex-col items-center bg-[#fdf8e7] font-sans overflow-hidden"
+         style={{ 
+           backgroundImage: 'repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(0,0,0,0.03) 40px, rgba(0,0,0,0.03) 80px)'
+         }}>
+      
+      {/* Top Bar */}
+      <div className="w-full flex justify-between items-center p-4 z-20">
+        <button onClick={() => setPhase('wish')} className="w-10 h-10 rounded-full bg-white/50 flex items-center justify-center shadow-sm text-[#5a4d41]">
+          <i className="fa-solid fa-chevron-left"></i>
+        </button>
+        <div className="flex items-center gap-2 bg-white/80 px-4 py-2 rounded-full shadow-sm text-[#5a4d41]">
+          <img src="https://i.ibb.co/k6KC8zyN/media-1769361739.png" className="w-5 h-5" alt="Coin" />
+          <span className="font-bold">{user.auroCoins.toLocaleString()}</span>
+        </div>
+      </div>
 
-              <div className="flex flex-col gap-4">
-                <p className="text-[10px] text-white/30 uppercase tracking-widest">Chi phí: {BAG_COST.toLocaleString()} Xu / Lượt</p>
-                
-                <button 
-                  onClick={onBack}
-                  className="mt-4 py-3 px-6 rounded-full bg-white/10 text-white/60 text-[10px] font-black uppercase tracking-widest hover:bg-white/20 hover:text-white transition-all"
-                >
-                  <i className="fa-solid fa-house mr-2"></i> Về trang chủ
-                </button>
-              </div>
+      {/* Wish Badge */}
+      <div className="mt-2 z-20 flex flex-col items-center">
+        <div className="bg-white border-2 border-[#e5dcd0] rounded-2xl px-6 py-2 shadow-sm flex flex-col items-center relative">
+          <div className="absolute -top-3 bg-[#facc15] text-black text-[10px] font-black uppercase px-3 py-1 rounded-full shadow-sm">
+            Muốn
+          </div>
+          <span className="text-4xl mt-2">{rewardTypes.find(r => r.type === wish)?.icon}</span>
+        </div>
+      </div>
+
+      {/* Main Play Area */}
+      <div className="flex-1 w-full flex flex-col items-center justify-center relative z-10">
+        
+        {comboMessage && (
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="absolute top-4 z-30">
+            <div className="bg-yellow-400 text-black px-4 py-2 rounded-full text-xs font-black uppercase shadow-md text-center whitespace-pre-line">
+              {comboMessage}
             </div>
           </motion.div>
         )}
-      </AnimatePresence>
 
-      {/* Main Game Area */}
-      <div className="relative z-10 flex flex-col items-center w-full max-w-lg">
-        <h1 className="text-4xl font-black uppercase tracking-tighter mb-12 text-center">
-          <span className="text-yellow-500">Xé Túi Mù</span> <br/>
-          <span className="text-sm font-normal text-white/40 tracking-[0.3em]">Blind Bag Opening</span>
-        </h1>
-
-        <div className="relative w-full aspect-square flex items-center justify-center">
-          <AnimatePresence mode="wait">
-            {!reward && !isOpening && bagsLeft > 0 && (
-              <motion.div
-                key="bag"
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 1.2, opacity: 0 }}
-                onClick={handleOpenBag}
-                className="cursor-pointer group relative"
-              >
-                <div className="w-64 h-80 bg-gradient-to-b from-yellow-400 to-yellow-600 rounded-[2rem] shadow-2xl flex flex-col items-center justify-center p-8 border-4 border-yellow-300 relative overflow-hidden">
-                  <div className="absolute inset-0 opacity-20 bg-[repeating-linear-gradient(45deg,_transparent,_transparent_10px,_rgba(255,255,255,0.2)_10px,_rgba(255,255,255,0.2)_20px)]"></div>
-                  <div className="text-8xl mb-4 drop-shadow-lg">🛍️</div>
-                  <div className="bg-black/20 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest">Mystery Bag</div>
-                  
-                  {/* Tear line */}
-                  <div className="absolute top-12 left-0 right-0 h-1 border-t-2 border-dashed border-white/40"></div>
-                </div>
-                <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap bg-white text-black px-6 py-2 rounded-full text-xs font-black uppercase shadow-xl group-hover:scale-110 transition-transform">
-                  Chạm để xé!
-                </div>
-              </motion.div>
-            )}
-
-            {isTearing && (
-              <motion.div
-                key="tearing"
-                className="relative w-64 h-80"
-              >
+        <AnimatePresence mode="wait">
+          {!currentReward && bagsLeft > 0 && !isOpeningAll ? (
+            <motion.div
+              key="bag"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.5, opacity: 0 }}
+              className="relative flex flex-col items-center"
+            >
+              {!isOpening && (
                 <motion.div 
-                  animate={{ y: -100, rotate: -10, opacity: 0 }}
-                  className="absolute top-0 left-0 right-0 h-20 bg-yellow-400 rounded-t-[2rem] border-4 border-yellow-300 z-20"
-                />
-                <div className="w-64 h-80 bg-yellow-500 rounded-[2rem] border-4 border-yellow-300 flex items-center justify-center">
-                  <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity }} className="text-6xl">✨</motion.div>
-                </div>
-              </motion.div>
-            )}
+                  animate={{ y: [0, -10, 0] }} 
+                  transition={{ repeat: Infinity, duration: 1 }}
+                  className="absolute -top-12 right-4 z-30 flex flex-col items-center"
+                >
+                  <span className="text-[10px] font-black text-white bg-rose-500 px-2 py-1 rounded-md uppercase mb-1">Xé ngay</span>
+                  <i className="fa-solid fa-arrow-down text-rose-500"></i>
+                </motion.div>
+              )}
 
-            {reward && !isOpening && (
               <motion.div
-                key="reward"
-                initial={{ scale: 0.5, opacity: 0, rotateY: 180 }}
-                animate={{ scale: 1, opacity: 1, rotateY: 0 }}
-                className="flex flex-col items-center"
+                onClick={handleOpenBag}
+                animate={isOpening ? { x: [-5, 5, -5, 5, 0], rotate: [-2, 2, -2, 2, 0] } : {}}
+                transition={{ duration: 0.3 }}
+                className={`w-64 h-48 bg-gradient-to-br from-pink-400 to-pink-500 rounded-xl shadow-xl flex items-center justify-center relative cursor-pointer border-4 border-pink-300 ${isOpening ? 'pointer-events-none' : ''}`}
               >
-                <div className="w-64 h-64 bg-white/5 backdrop-blur-3xl rounded-[3rem] border border-white/20 flex items-center justify-center text-9xl shadow-2xl mb-8 relative">
-                  <div className="absolute inset-0 bg-gradient-to-tr from-yellow-500/20 to-transparent rounded-[3rem]"></div>
-                  {reward.icon}
-                  
-                  {reward.type === wish && (
-                    <div className="absolute -top-4 -right-4 bg-yellow-500 text-black w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-lg border-4 border-[#1a1a1a] animate-bounce">
-                      <i className="fa-solid fa-star"></i>
-                    </div>
-                  )}
+                {/* Tear line */}
+                <div className="absolute right-6 top-0 bottom-0 w-2 flex flex-col justify-evenly py-2">
+                  {Array.from({length: 10}).map((_, i) => <div key={i} className="w-1.5 h-3 bg-white/40 rounded-full"></div>)}
                 </div>
-                
-                <h2 className="text-3xl font-black uppercase tracking-tighter text-center mb-2">{reward.name}</h2>
-                <p className="text-white/50 text-center text-sm italic max-w-xs mb-8">"{reward.description}"</p>
-                
-                <div className="flex gap-4">
-                  {bagsLeft > 0 ? (
-                    <button
-                      onClick={() => setReward(null)}
-                      className="px-10 py-4 rounded-full bg-yellow-500 text-black font-black uppercase text-xs tracking-widest shadow-xl hover:scale-105 transition-transform"
-                    >
-                      Tiếp tục xé ({bagsLeft})
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        setReward(null);
-                        setShowWishModal(true);
-                        setRecentRewards([]);
-                      }}
-                      className="px-10 py-4 rounded-full bg-white text-black font-black uppercase text-xs tracking-widest shadow-xl hover:scale-105 transition-transform"
-                    >
-                      Chơi lượt mới
-                    </button>
-                  )}
+                {/* Heart Center */}
+                <div className="w-28 h-28 bg-white rounded-full flex items-center justify-center shadow-inner">
+                  <span className="text-6xl text-pink-500 font-black">?</span>
                 </div>
               </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* Recent Rewards Tray */}
-        <div className="mt-12 w-full overflow-x-auto pb-4 custom-scrollbar">
-          <div className="flex gap-3 justify-center min-w-max px-4">
-            {recentRewards.map((r, i) => (
-              <div key={i} className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center text-2xl border border-white/5">
-                {r.icon}
+            </motion.div>
+          ) : currentReward && !isOpeningAll ? (
+            <motion.div
+              key="reward"
+              initial={{ scale: 0, y: 50 }}
+              animate={{ scale: 1, y: 0 }}
+              className="flex flex-col items-center"
+            >
+              <div className="w-40 h-40 bg-white rounded-full shadow-[0_0_40px_rgba(250,204,21,0.6)] flex items-center justify-center text-7xl mb-4 border-4 border-yellow-400 relative z-20">
+                {currentReward.icon}
+                <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 8, ease: "linear" }} className="absolute inset-[-15px] border-2 border-dashed border-yellow-400 rounded-full opacity-50" />
               </div>
+              <div className="bg-white px-6 py-3 rounded-2xl shadow-md text-center border border-[#e5dcd0] z-20">
+                <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest block mb-1">
+                  {rewardTypes.find(r => r.type === currentReward.type)?.label}
+                </span>
+                <h3 className="text-lg font-black text-[#5a4d41]">{currentReward.name}</h3>
+              </div>
+              
+              <div className="mt-8 flex gap-3 z-20">
+                {bagsLeft > 0 ? (
+                  <button onClick={() => { setCurrentReward(null); setComboMessage(null); }} className="px-8 py-3 bg-yellow-400 text-black rounded-full font-black uppercase text-xs shadow-md">
+                    Tiếp tục xé
+                  </button>
+                ) : (
+                  <button onClick={() => setPhase('wish')} className="px-8 py-3 bg-white text-black rounded-full font-black uppercase text-xs shadow-md border border-gray-200">
+                    Chơi lượt mới
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          ) : isOpeningAll ? (
+            <motion.div key="opening-all" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center">
+              <div className="w-16 h-16 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+              <p className="font-black uppercase text-pink-600 tracking-widest">Đang xé túi...</p>
+            </motion.div>
+          ) : bagsLeft <= 0 && !currentReward ? (
+             <motion.div key="done" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center">
+                <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center text-4xl shadow-md mb-4 text-gray-400">
+                  <i className="fa-solid fa-box-open"></i>
+                </div>
+                <p className="font-bold text-[#5a4d41] mb-6">Đã hết túi mù!</p>
+                <button onClick={() => setPhase('wish')} className="px-8 py-3 bg-yellow-400 text-black rounded-full font-black uppercase text-xs shadow-md">
+                  Mua thêm túi
+                </button>
+             </motion.div>
+          ) : null}
+        </AnimatePresence>
+      </div>
+
+      {/* Bottom Controls & Tray */}
+      <div className="w-full mt-auto z-20">
+        {/* Controls */}
+        {!currentReward && bagsLeft > 0 && !isOpeningAll && (
+          <div className="flex justify-between items-end px-6 mb-4">
+            <div className="relative">
+              <div className="w-20 h-16 bg-[#8ba6d4] rounded-xl border-4 border-[#6b8ac0] flex items-center justify-center shadow-inner relative">
+                <div className="flex gap-[-10px]">
+                  <div className="w-8 h-8 bg-pink-400 rounded-sm transform -rotate-12 border border-pink-300"></div>
+                  <div className="w-8 h-8 bg-pink-400 rounded-sm transform rotate-6 -ml-4 border border-pink-300"></div>
+                  <div className="w-8 h-8 bg-pink-400 rounded-sm transform -rotate-6 -ml-4 border border-pink-300"></div>
+                </div>
+                <div className="absolute -top-3 -right-3 w-7 h-7 bg-purple-500 rounded-full flex items-center justify-center text-white text-xs font-black shadow-md border-2 border-white">
+                  {bagsLeft}
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={handleOpenAll}
+              className="px-6 py-3 bg-[#4ade80] text-white rounded-xl font-black uppercase tracking-widest shadow-[0_4px_0_#16a34a] active:translate-y-[4px] active:shadow-none transition-all"
+            >
+              Mở Hết
+            </button>
+          </div>
+        )}
+
+        {/* Wooden Tray */}
+        <div className="w-full bg-[#d28c5a] border-t-8 border-[#b06b3d] p-4 min-h-[140px] shadow-[inset_0_10px_20px_rgba(0,0,0,0.1)]">
+          <div className="w-full h-4 bg-[#b06b3d]/30 rounded-full mb-4"></div>
+          <div className="flex flex-wrap gap-3 justify-center">
+            {recentRewards.map((r, i) => (
+              <motion.div 
+                initial={{ scale: 0, y: 20 }} animate={{ scale: 1, y: 0 }}
+                key={i} 
+                className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-3xl shadow-md border-b-4 border-gray-200 relative group"
+              >
+                {r.icon}
+                <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-black/80 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                  {r.name}
+                </div>
+              </motion.div>
             ))}
+            {recentRewards.length === 0 && (
+              <div className="w-full text-center text-[#8c5a3d] text-sm font-bold opacity-50 mt-2">
+                Đồ đã mở sẽ nằm ở đây
+              </div>
+            )}
           </div>
         </div>
       </div>
 
       {error && (
-        <motion.div 
-          initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
-          className="fixed bottom-12 bg-rose-500 text-white px-8 py-3 rounded-full text-xs font-black uppercase tracking-widest shadow-2xl"
-        >
+        <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="fixed bottom-10 z-[150] bg-rose-500 text-white px-6 py-3 rounded-full text-xs font-black uppercase shadow-2xl">
           {error}
         </motion.div>
       )}
@@ -352,4 +507,3 @@ const GachaView: React.FC<GachaViewProps> = ({
 };
 
 export default GachaView;
-

@@ -178,6 +178,53 @@ export function useWorldManager(
     setNotification({ title: 'Thành công', message: "Đã tải dữ liệu trình duyệt.", type: 'success' });
   };
 
+  const handleSyncLocalToCloud = async () => {
+    if (!worldId || !firebaseRef.current.isReady()) {
+      setNotification({ title: 'Lỗi', message: "Vui lòng kết nối máy chủ trước khi đồng bộ.", type: 'error' });
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      const localSlots = getLocalSlotsForWorld(worldId);
+      if (localSlots.length === 0) {
+        setNotification({ title: 'Thông báo', message: "Không tìm thấy dữ liệu trình duyệt để đồng bộ.", type: 'info' });
+        setIsLoading(false);
+        return;
+      }
+
+      let successCount = 0;
+      for (const slot of localSlots) {
+        const dataStr = localStorage.getItem(`save_${slot.id}`);
+        if (dataStr) {
+          const data = JSON.parse(dataStr);
+          if (data.character && data.user) {
+            await firebaseRef.current.saveCharacterToWorld(
+              slot.id,
+              data.character,
+              data.user,
+              data.messages || []
+            );
+            successCount++;
+          }
+        }
+      }
+
+      setNotification({ 
+        title: 'Thành công', 
+        message: `Đã đồng bộ ${successCount} cư dân lên máy chủ.`, 
+        type: 'success' 
+      });
+      
+      // Refresh list
+      handleEnterOnline();
+    } catch (e: any) {
+      setNotification({ title: 'Lỗi đồng bộ', message: e.message || "Có lỗi xảy ra khi đồng bộ.", type: 'error' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return {
     worldId, setWorldId,
     appMode, setAppMode,
@@ -194,6 +241,7 @@ export function useWorldManager(
     handleEnterOnline,
     handleLoadAllCharacters,
     handleLoadLocalCharacters,
+    handleSyncLocalToCloud,
     getLocalSlotsForWorld
   };
 }

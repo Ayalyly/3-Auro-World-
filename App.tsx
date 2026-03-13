@@ -122,6 +122,7 @@ export default function App() {
     handleEnterOnline,
     handleLoadAllCharacters,
     handleLoadLocalCharacters,
+    handleSyncLocalToCloud,
     getLocalSlotsForWorld
   } = useWorldManager(firebaseRef, setNotification, setView, setSettings, settings);
 
@@ -1496,6 +1497,7 @@ export default function App() {
           }}
           onLoadAllCharacters={handleLoadAllCharacters}
           onLoadLocalCharacters={handleLoadLocalCharacters}
+          onSyncLocalToCloud={handleSyncLocalToCloud}
           t={t}
         />
       );

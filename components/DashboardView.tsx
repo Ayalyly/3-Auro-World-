@@ -18,6 +18,7 @@ interface DashboardViewProps {
   onLogout: () => void;
   onLoadAllCharacters?: () => void;
   onLoadLocalCharacters?: () => void;
+  onSyncLocalToCloud?: () => void;
   t: (key: string) => string;
   onUpdateUser?: (user: UserProfile) => void;
   shopItems?: InventoryItem[];
@@ -40,6 +41,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
   onLogout,
   onLoadAllCharacters,
   onLoadLocalCharacters,
+  onSyncLocalToCloud,
   t,
   onUpdateUser,
   shopItems = []
@@ -1058,16 +1060,24 @@ const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
 
             <div className="space-y-3">
-              <div className="flex justify-between items-center px-2">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">DANH SÁCH ({slots.length})</p>
+              <div className="flex flex-wrap justify-between items-center gap-3 px-2">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">DANH SÁCH ({slots.length}) CƯ DÂN</p>
                 
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   {appMode === 'online' && onLoadLocalCharacters && (
                     <button 
                       onClick={onLoadLocalCharacters} 
                       className="bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 text-amber-600 text-[9px] font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 shadow-sm border border-amber-100 active:scale-95 group"
                     >
                       <i className="fa-solid fa-laptop-code group-hover:animate-pulse"></i> TẢI DỮ LIỆU TRÌNH DUYỆT
+                    </button>
+                  )}
+                  {appMode === 'online' && onSyncLocalToCloud && (
+                    <button 
+                      onClick={onSyncLocalToCloud} 
+                      className="bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 text-emerald-600 text-[9px] font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 shadow-sm border border-emerald-100 active:scale-95 group"
+                    >
+                      <i className="fa-solid fa-cloud-arrow-up group-hover:animate-bounce"></i> ĐỒNG BỘ LÊN SERVER
                     </button>
                   )}
                   {appMode === 'online' && onLoadAllCharacters && (

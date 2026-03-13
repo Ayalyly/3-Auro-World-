@@ -277,6 +277,29 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                 </div>
               </div>
 
+              <div>
+                <div className="flex justify-between mb-2">
+                  <label className="text-xs font-bold text-slate-700 uppercase">Giới hạn hiển thị tin nhắn</label>
+                  <span className="text-xs font-mono text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">{localSettings.chatDisplayLimit || 15} tin</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="5" max="100" step="5"
+                  value={localSettings.chatDisplayLimit || 15}
+                  onChange={e => {
+                    const updated = {...localSettings, chatDisplayLimit: parseInt(e.target.value)};
+                    setLocalSettings(updated);
+                    onSaveSettings(updated);
+                  }}
+                  className="w-full accent-emerald-600 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                />
+                <div className="flex justify-between text-[9px] text-slate-400 mt-1 font-bold">
+                  <span>5 (Siêu mượt)</span>
+                  <span>100 (Nặng máy)</span>
+                </div>
+                <p className="text-[9px] text-slate-400 mt-1 italic">* Giảm số tin hiển thị giúp gõ phím mượt hơn trên máy yếu.</p>
+              </div>
+
               <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                 <label className="flex items-center justify-between cursor-pointer mb-3">
                   <span className="text-xs font-bold text-slate-700 uppercase">Bật AI Thinking (Reasoning)</span>

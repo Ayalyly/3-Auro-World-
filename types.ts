@@ -444,6 +444,7 @@ export interface AppSettings {
   shopModel?: string; // New: Model for Shop
   socialModel?: string; // New: Model for Social Network
   worldModel?: string; // New: Model for World Generation
+  chatDisplayLimit?: number; // New: Limit for displayed messages
 }
 
 export interface AuraExportData {

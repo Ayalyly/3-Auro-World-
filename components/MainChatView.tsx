@@ -77,7 +77,7 @@ const MainChatView: React.FC<MainChatViewProps> = ({
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [visibleCount, setVisibleCount] = useState(15);
+  const [visibleCount, setVisibleCount] = useState(settings.chatDisplayLimit || 15);
   const [isAutoScrolling, setIsAutoScrolling] = useState(true);
   const [productProposal, setProductProposal] = useState<InventoryItem | null>(null);
   const [isProcessingProposal, setIsProcessingProposal] = useState(false);
@@ -91,9 +91,9 @@ const MainChatView: React.FC<MainChatViewProps> = ({
 
   // Reset visibleCount when switching branches or characters
   useEffect(() => {
-    setVisibleCount(15);
+    setVisibleCount(settings.chatDisplayLimit || 15);
     setIsAutoScrolling(true);
-  }, [currentBranchId, character.id]);
+  }, [currentBranchId, character.id, settings.chatDisplayLimit]);
 
   useEffect(() => {
     if (isAutoScrolling) {
@@ -109,7 +109,7 @@ const MainChatView: React.FC<MainChatViewProps> = ({
 
     if (isAtTop && visibleCount < displayedMessages.length) {
       const oldScrollHeight = target.scrollHeight;
-      setVisibleCount(prev => Math.min(prev + 15, displayedMessages.length));
+      setVisibleCount(prev => Math.min(prev + (settings.chatDisplayLimit || 15), displayedMessages.length));
       
       // Maintain scroll position after state update
       setTimeout(() => {
@@ -363,7 +363,7 @@ const MainChatView: React.FC<MainChatViewProps> = ({
         {visibleCount < displayedMessages.length && (
           <div className="py-4 text-center">
             <button 
-              onClick={() => setVisibleCount(prev => Math.min(prev + 15, displayedMessages.length))}
+              onClick={() => setVisibleCount(prev => Math.min(prev + (settings.chatDisplayLimit || 15), displayedMessages.length))}
               className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-500 transition-colors"
             >
               <i className="fa-solid fa-clock-rotate-left mr-1"></i> Tải thêm hội thoại cũ

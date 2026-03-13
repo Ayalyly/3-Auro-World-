@@ -36,7 +36,8 @@ const DEFAULT_SETTINGS: AppSettings = {
     npcAutoComment: true,
     enableImageUpload: true,
     enableNSFWFilter: true
-  }
+  },
+  chatDisplayLimit: 15
 };
 
 export const useSettings = () => {

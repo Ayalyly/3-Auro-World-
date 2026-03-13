@@ -19,12 +19,12 @@ export const getGachaRewardPrompt = (
   charPrompt: string,
   rewardType: string
 ): string => {
-  return `Bạn là hệ thống sinh phần thưởng Gacha cho trò chơi "Auro World".
+  return `Bạn là hệ thống sinh phần thưởng "Xé Túi Mù" (Blind Bag) cho trò chơi "Auro World".
 Dựa trên thông tin nhân vật sau:
 Tên: ${charName}
 Mô tả/Tính cách: ${charPrompt}
 
-Hãy sinh một phần thưởng ngẫu nhiên thuộc loại: "${rewardType}".
+Hãy sinh một phần thưởng ngẫu nhiên ẩn giấu trong túi mù thuộc loại: "${rewardType}".
 Các loại phần thưởng có thể là:
 - furniture: Một món đồ nội thất độc đáo phù hợp với phong cách của nhân vật.
 - item: Một vật phẩm đặc biệt, có thể là quà tặng hoặc đồ dùng cá nhân của nhân vật.

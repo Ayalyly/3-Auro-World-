@@ -1,5 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import html2canvas from 'html2canvas';
 import { Character, UserProfile, InventoryItem, PlacedFurniture, Message, AppSettings } from '../types';
 import { GeminiService } from '../services/geminiService';
@@ -624,54 +625,194 @@ const GACHA_ITEMS: InventoryItem[] = [
 
 // --- GACHA MODAL ---
 const GachaModal = ({ onClose, onPull, userCoins }: { onClose: () => void, onPull: () => Promise<InventoryItem | null>, userCoins: number }) => {
-    const [isPulling, setIsPulling] = useState(false);
+    const [isOpening, setIsOpening] = useState(false);
+    const [isTearing, setIsTearing] = useState(false);
     const [wonItem, setWonItem] = useState<InventoryItem | null>(null);
-    const GACHA_COST = 100;
+    const [wish, setWish] = useState<string | null>(null);
+    const [bagsLeft, setBagsLeft] = useState(0);
+    const [recentRewards, setRecentRewards] = useState<InventoryItem[]>([]);
+    const [showWishModal, setShowWishModal] = useState(true);
+    
+    const BAG_COST = 2000;
 
-    const handlePull = async () => {
-        if (userCoins < GACHA_COST) {
+    const categories = [
+        { id: 'Decoration', label: 'Trang trí', icon: '🖼️' },
+        { id: 'Plant', label: 'Cây cối', icon: '🌿' },
+        { id: 'Rug', label: 'Thảm', icon: '🧶' },
+        { id: 'Furniture', label: 'Nội thất', icon: '🪑' }
+    ];
+
+    const handleStart = (selectedWish: string) => {
+        if (userCoins < BAG_COST) {
             alert("Không đủ Xu Auro!");
             return;
         }
-        setIsPulling(true);
-        const item = await onPull();
-        setWonItem(item);
-        setIsPulling(false);
+        setWish(selectedWish);
+        setBagsLeft(1);
+        setShowWishModal(false);
+    };
+
+    const handleOpenBag = async () => {
+        if (isOpening || bagsLeft <= 0) return;
+        
+        setIsOpening(true);
+        setIsTearing(true);
+        
+        try {
+            const item = await onPull();
+            
+            await new Promise(res => setTimeout(res, 1200));
+            setIsTearing(false);
+            
+            if (item) {
+                setWonItem(item);
+                
+                let extra = 0;
+                // Check wish
+                if (item.category === wish) {
+                    extra += 1;
+                }
+                // Check pair
+                const last = recentRewards[recentRewards.length - 1];
+                if (last && last.id === item.id) {
+                    extra += 1;
+                }
+                
+                setBagsLeft(prev => prev + extra - 1);
+                setRecentRewards(prev => [...prev, item]);
+            } else {
+                setBagsLeft(prev => prev - 1);
+            }
+        } finally {
+            setIsOpening(false);
+        }
     };
 
     return (
         <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-6 animate-in fade-in">
-            <div className="bg-gradient-to-br from-purple-300 to-indigo-400 p-4 rounded-2xl border-4 border-yellow-300 shadow-2xl w-full max-w-sm relative text-center">
-                <button onClick={onClose} className="absolute top-2 right-2 w-8 h-8 bg-rose-500 text-white rounded-lg border-2 border-black flex items-center justify-center shadow-lg z-10"><i className="fa-solid fa-xmark"></i></button>
-                <h3 className="text-center font-black text-white uppercase tracking-widest text-lg mb-2 text-shadow-lg">Máy Gacha Kỳ Diệu</h3>
-                
-                <div className="bg-white/20 rounded-xl p-4 my-4">
-                    <img src="https://i.ibb.co/8DLQ7Bdt/gacha-machine.png" alt="Gacha Machine" className="w-48 h-auto mx-auto drop-shadow-xl" />
-                </div>
+            <div className="bg-gradient-to-br from-[#5d4037] to-[#3e2723] p-6 rounded-[2.5rem] border-4 border-[#ffcc80] shadow-2xl w-full max-w-sm relative text-center overflow-hidden">
+                {/* Close Button */}
+                <button onClick={onClose} className="absolute top-4 right-4 w-10 h-10 bg-rose-500 text-white rounded-xl border-2 border-white flex items-center justify-center shadow-lg z-50 hover:bg-rose-600 active:scale-90 transition-all">
+                    <i className="fa-solid fa-xmark"></i>
+                </button>
 
-                {wonItem ? (
-                    <div className="flex flex-col items-center gap-2 animate-in zoom-in">
-                         <p className="text-xs font-bold text-white/80">Bạn đã nhận được:</p>
-                        <div className="bg-white p-2 rounded-xl border-2 border-yellow-400 flex flex-col items-center gap-2 shadow-lg">
-                            <div className="w-20 h-20 flex items-center justify-center bg-slate-50 rounded-lg overflow-hidden relative">
-                                <img src={wonItem.pixelImage} className="w-full h-full object-contain" style={{imageRendering: 'pixelated'}} />
-                            </div>
-                            <h4 className="text-xs font-black text-[#5d4037] uppercase truncate">{wonItem.name}</h4>
+                {/* Wish Modal Overlay */}
+                {showWishModal && (
+                    <div className="absolute inset-0 z-40 bg-[#3e2723]/95 flex flex-col items-center justify-center p-6">
+                        <div className="w-16 h-16 bg-amber-400/20 rounded-full flex items-center justify-center text-3xl mb-4 text-amber-400">
+                            <i className="fa-solid fa-wand-magic-sparkles"></i>
                         </div>
-                        <button onClick={() => setWonItem(null)} className="mt-2 w-full py-2 bg-yellow-400 text-purple-900 text-sm font-bold uppercase rounded-lg shadow-md active:scale-95 hover:bg-yellow-300">Quay Tiếp!</button>
-                    </div>
-                ) : (
-                    <div className="flex flex-col items-center gap-2">
-                        <p className="text-xs font-bold text-white/80">Mỗi lượt quay tốn 100 Xu. Thử vận may của bạn!</p>
-                        <button 
-                            onClick={handlePull}
-                            disabled={isPulling || userCoins < GACHA_COST}
-                            className="w-full py-3 bg-yellow-400 text-purple-900 text-lg font-black uppercase rounded-lg shadow-lg active:scale-95 hover:bg-yellow-300 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                        >
-                            {isPulling ? <i className="fa-solid fa-circle-notch fa-spin"></i> : <><i className="fa-solid fa-star"></i> Quay Ngay!</>}
-                        </button>
+                        <h3 className="font-black text-white uppercase tracking-widest mb-1">Chọn Nguyện Vọng</h3>
+                        <p className="text-[10px] text-white/50 uppercase tracking-widest mb-6">Trúng loại này được tặng thêm túi!</p>
+                        
+                        <div className="grid grid-cols-2 gap-3 w-full mb-6">
+                            {categories.map(cat => (
+                                <button 
+                                    key={cat.id}
+                                    onClick={() => handleStart(cat.id)}
+                                    className="bg-white/5 border border-white/10 p-4 rounded-2xl flex flex-col items-center gap-2 hover:bg-amber-400 hover:text-black transition-all group"
+                                >
+                                    <span className="text-2xl group-hover:scale-110 transition-transform">{cat.icon}</span>
+                                    <span className="text-[9px] font-bold uppercase">{cat.label}</span>
+                                </button>
+                            ))}
+                        </div>
+                        <p className="text-[10px] text-amber-400/50 font-bold">Chi phí: {BAG_COST} Xu / Lượt</p>
                     </div>
                 )}
+
+                <h3 className="font-black text-amber-200 uppercase tracking-widest text-lg mb-6">Xé Túi Mù Nội Thất</h3>
+
+                <div className="relative h-64 flex items-center justify-center mb-6">
+                    <AnimatePresence mode="wait">
+                        {isTearing ? (
+                            <motion.div 
+                                key="tearing"
+                                initial={{ scale: 0.8 }}
+                                animate={{ scale: 1 }}
+                                className="relative w-48 h-60"
+                            >
+                                <motion.div 
+                                    animate={{ y: -60, rotate: -15, opacity: 0 }}
+                                    className="absolute top-0 left-0 right-0 h-16 bg-amber-500 rounded-t-3xl border-4 border-amber-300 z-20"
+                                />
+                                <div className="w-full h-full bg-amber-600 rounded-3xl border-4 border-amber-400 flex items-center justify-center shadow-2xl">
+                                    <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity }} className="text-5xl">✨</motion.div>
+                                </div>
+                            </motion.div>
+                        ) : wonItem && !isOpening ? (
+                            <motion.div 
+                                key="reward"
+                                initial={{ scale: 0.5, opacity: 0, rotate: 10 }}
+                                animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                                className="flex flex-col items-center"
+                            >
+                                <div className="w-48 h-48 bg-white/10 backdrop-blur-xl rounded-[2rem] border-2 border-white/20 flex items-center justify-center relative shadow-2xl mb-4">
+                                    <img src={wonItem.pixelImage} className="w-32 h-32 object-contain" style={{imageRendering: 'pixelated'}} />
+                                    {wonItem.category === wish && (
+                                        <div className="absolute -top-3 -right-3 bg-amber-400 text-black w-10 h-10 rounded-full flex items-center justify-center text-lg shadow-lg border-4 border-[#3e2723] animate-bounce">
+                                            <i className="fa-solid fa-star"></i>
+                                        </div>
+                                    )}
+                                </div>
+                                <h4 className="font-black text-white uppercase tracking-tight">{wonItem.name}</h4>
+                                <p className="text-[10px] text-amber-200/60 uppercase font-bold">{wonItem.rarity}</p>
+                            </motion.div>
+                        ) : (
+                            <motion.div 
+                                key="bag"
+                                initial={{ scale: 0.9 }}
+                                animate={{ scale: 1 }}
+                                whileHover={{ scale: 1.05 }}
+                                onClick={handleOpenBag}
+                                className="cursor-pointer group relative"
+                            >
+                                <div className="w-48 h-60 bg-gradient-to-b from-amber-400 to-amber-600 rounded-3xl border-4 border-amber-300 shadow-2xl flex flex-col items-center justify-center p-6 relative overflow-hidden">
+                                    <div className="absolute inset-0 opacity-10 bg-[repeating-linear-gradient(45deg,_transparent,_transparent_10px,_white_10px,_white_20px)]"></div>
+                                    <div className="text-7xl mb-4 drop-shadow-lg group-hover:scale-110 transition-transform">🛍️</div>
+                                    <div className="bg-black/20 px-3 py-1 rounded-full text-[8px] font-black text-white uppercase tracking-widest">Mystery Bag</div>
+                                    <div className="absolute top-10 left-0 right-0 h-0.5 border-t-2 border-dashed border-white/30"></div>
+                                </div>
+                                <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-white text-[#3e2723] px-4 py-1.5 rounded-full text-[9px] font-black uppercase shadow-xl whitespace-nowrap">Chạm để xé!</div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                    {wonItem && !isOpening ? (
+                        <button 
+                            onClick={() => {
+                                if (bagsLeft > 0) {
+                                    setWonItem(null);
+                                } else {
+                                    setWonItem(null);
+                                    setShowWishModal(true);
+                                    setRecentRewards([]);
+                                }
+                            }}
+                            className="w-full py-3 bg-amber-400 text-[#3e2723] rounded-2xl font-black uppercase tracking-widest shadow-lg hover:bg-amber-300 transition-all"
+                        >
+                            {bagsLeft > 0 ? `Tiếp tục xé (${bagsLeft})` : 'Chơi lượt mới'}
+                        </button>
+                    ) : (
+                        <div className="flex items-center justify-center gap-2">
+                            {recentRewards.length > 0 && (
+                                <div className="flex gap-1 overflow-x-auto no-scrollbar max-w-full py-2">
+                                    {recentRewards.map((r, i) => (
+                                        <div key={i} className="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center text-lg border border-white/10 shrink-0">
+                                            <img src={r.pixelImage} className="w-6 h-6 object-contain" style={{imageRendering: 'pixelated'}} />
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    
+                    <p className="text-[9px] text-white/30 font-bold uppercase tracking-widest">
+                        Số dư: {userCoins.toLocaleString()} Xu Auro
+                    </p>
+                </div>
             </div>
         </div>
     );
@@ -946,10 +1087,10 @@ const HomeRoomView: React.FC<HomeRoomViewProps> = ({ character, user, onClose, o
       setIsCharacterSpeaking(false);
     }
   };
-  const handleGachaPull = async (): Promise<InventoryItem | null> => {
-      const GACHA_COST = 100;
-      if ((user.auroCoins || 0) < GACHA_COST) {
-          showSysMsg("Bạn không đủ Xu Auro để quay Gacha!");
+  const handleBlindBagOpen = async (): Promise<InventoryItem | null> => {
+      const BAG_COST = 2000;
+      if ((user.auroCoins || 0) < BAG_COST) {
+          showSysMsg("Bạn không đủ Xu Auro để xé túi mù!");
           return null;
       }
 
@@ -970,7 +1111,7 @@ const HomeRoomView: React.FC<HomeRoomViewProps> = ({ character, user, onClose, o
 
       const updatedUser = {
           ...user,
-          auroCoins: (user.auroCoins || 0) - GACHA_COST,
+          auroCoins: (user.auroCoins || 0) - BAG_COST,
           furnitureInventory: [...(user.furnitureInventory || []), { ...wonItem, quantity: 1, isFurniture: true }]
       };
       onUpdateUser(updatedUser);
@@ -978,7 +1119,7 @@ const HomeRoomView: React.FC<HomeRoomViewProps> = ({ character, user, onClose, o
       // A little delay to build suspense
       await new Promise(res => setTimeout(res, 1500));
 
-      showSysMsg(`Wow! Bạn đã quay ra ${wonItem.name}!`);
+      showSysMsg(`Wow! Bạn đã xé được ${wonItem.name}!`);
       handlePlaceItem({ ...wonItem, quantity: 1 }); // Automatically place the item
       return wonItem;
   };
@@ -1296,6 +1437,7 @@ const HomeRoomView: React.FC<HomeRoomViewProps> = ({ character, user, onClose, o
 
   const extraMenuItems = [
       { label: 'Túi', icon: 'fa-briefcase', action: handleOpenInventory, color: 'text-blue-500', bg: 'bg-blue-50' },
+      { label: 'Xé Túi Mù', icon: 'fa-gift', action: () => setShowGacha(true), color: 'text-yellow-500', bg: 'bg-yellow-50' },
       { label: 'Lưu Lại', icon: isSaving ? 'fa-circle-notch fa-spin' : 'fa-floppy-disk', action: handleSave, color: 'text-emerald-500', bg: 'bg-emerald-50' },
       { label: 'Tải Char', icon: 'fa-upload', action: () => setUploadWarningTarget('char'), color: 'text-purple-500', bg: 'bg-purple-50' },
       { label: 'Tải User', icon: 'fa-user-plus', action: () => setUploadWarningTarget('user'), color: 'text-pink-500', bg: 'bg-pink-50' },
@@ -1538,7 +1680,7 @@ const HomeRoomView: React.FC<HomeRoomViewProps> = ({ character, user, onClose, o
         }} />}
 
         {/* GACHA MODAL */}
-        {showGacha && <GachaModal onClose={() => setShowGacha(false)} onPull={handleGachaPull} userCoins={user.auroCoins || 0} />}
+        {showGacha && <GachaModal onClose={() => setShowGacha(false)} onPull={handleBlindBagOpen} userCoins={user.auroCoins || 0} />}
 
         {/* TUTORIAL MODAL */}
         {showTutorial && <TutorialModal onClose={() => setShowTutorial(false)} />}

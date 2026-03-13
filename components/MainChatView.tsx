@@ -76,6 +76,9 @@ const MainChatView: React.FC<MainChatViewProps> = ({
   setPlayingVideoId
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [visibleCount, setVisibleCount] = useState(15);
+  const [isAutoScrolling, setIsAutoScrolling] = useState(true);
   const [productProposal, setProductProposal] = useState<InventoryItem | null>(null);
   const [isProcessingProposal, setIsProcessingProposal] = useState(false);
   
@@ -86,9 +89,41 @@ const MainChatView: React.FC<MainChatViewProps> = ({
   const [isMinimized, setIsMinimized] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Reset visibleCount when switching branches or characters
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [displayedMessages]);
+    setVisibleCount(15);
+    setIsAutoScrolling(true);
+  }, [currentBranchId, character.id]);
+
+  useEffect(() => {
+    if (isAutoScrolling) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [displayedMessages, isAutoScrolling]);
+
+  // Handle scroll to top to load more
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+    const isAtTop = target.scrollTop === 0;
+    const isAtBottom = Math.abs(target.scrollHeight - target.clientHeight - target.scrollTop) < 50;
+
+    if (isAtTop && visibleCount < displayedMessages.length) {
+      const oldScrollHeight = target.scrollHeight;
+      setVisibleCount(prev => Math.min(prev + 15, displayedMessages.length));
+      
+      // Maintain scroll position after state update
+      setTimeout(() => {
+        if (scrollContainerRef.current) {
+          const newScrollHeight = scrollContainerRef.current.scrollHeight;
+          scrollContainerRef.current.scrollTop = newScrollHeight - oldScrollHeight;
+        }
+      }, 0);
+    }
+
+    setIsAutoScrolling(isAtBottom);
+  };
+
+  const messagesToDisplay = displayedMessages.slice(-visibleCount);
 
   const getYoutubeId = (url: string) => {
     if (!url) return null;
@@ -169,6 +204,7 @@ const MainChatView: React.FC<MainChatViewProps> = ({
                 playsinline: 1
               }
             }}
+            onEnd={(e) => { e.target.playVideo(); }}
             className="w-[150vw] h-[150vh] -ml-[25vw] -mt-[25vh]" // Scale up to hide black bars and fill screen
             iframeClassName="w-full h-full object-cover"
           />
@@ -230,6 +266,8 @@ const MainChatView: React.FC<MainChatViewProps> = ({
           <div className="h-[55vh] shrink-0 pointer-events-none"></div>
         )}
         <div 
+          ref={scrollContainerRef}
+          onScroll={handleScroll}
           className="flex-1 overflow-y-auto px-4 py-2 custom-scrollbar flex flex-col"
           style={{
             maskImage: settings.theme.chatLayoutStyle === 'immersive-short' ? 'linear-gradient(to bottom, transparent, black 10%, black)' : undefined,
@@ -322,13 +360,24 @@ const MainChatView: React.FC<MainChatViewProps> = ({
           <div className="flex-1"></div>
         )}
 
+        {visibleCount < displayedMessages.length && (
+          <div className="py-4 text-center">
+            <button 
+              onClick={() => setVisibleCount(prev => Math.min(prev + 15, displayedMessages.length))}
+              className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-500 transition-colors"
+            >
+              <i className="fa-solid fa-clock-rotate-left mr-1"></i> Tải thêm hội thoại cũ
+            </button>
+          </div>
+        )}
+
         {displayedMessages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full opacity-50">
             <i className={`fa-solid fa-wind text-4xl mb-2 ${(settings.theme.chatLayoutStyle === 'immersive' || settings.theme.chatLayoutStyle === 'immersive-short') ? 'text-white/50' : 'text-slate-300'}`}></i>
             <p className={`text-xs ${(settings.theme.chatLayoutStyle === 'immersive' || settings.theme.chatLayoutStyle === 'immersive-short') ? 'text-white/50' : 'text-slate-400'}`}>Bắt đầu câu chuyện...</p>
           </div>
         )}
-        {displayedMessages.map((msg) => (
+        {messagesToDisplay.map((msg) => (
           <MessageBubble
             key={msg.id}
             message={msg}

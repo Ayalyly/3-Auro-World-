@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserProfile, Character, InventoryItem, AppView, Message, Sender, DiaryEntry, Memory } from '../types';
 import { GeminiService } from '../services/geminiService';
@@ -24,7 +24,7 @@ interface GachaReward {
   data?: any;
 }
 
-const GACHA_COST = 3000;
+const BAG_COST = 2000;
 
 const GachaView: React.FC<GachaViewProps> = ({
   user,
@@ -35,226 +35,321 @@ const GachaView: React.FC<GachaViewProps> = ({
   onAddMessage,
   onBack
 }) => {
-  const [isSpinning, setIsSpinning] = useState(false);
+  const [isOpening, setIsOpening] = useState(false);
   const [reward, setReward] = useState<GachaReward | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [wish, setWish] = useState<GachaRewardType | null>(null);
+  const [recentRewards, setRecentRewards] = useState<GachaReward[]>([]);
+  const [bagsLeft, setBagsLeft] = useState(0);
+  const [isTearing, setIsTearing] = useState(false);
+  const [showWishModal, setShowWishModal] = useState(true);
+  const [comboCount, setComboCount] = useState(0);
 
-  const handleSpin = async () => {
-    if (user.auroCoins < GACHA_COST) {
+  const rewardTypes: { type: GachaRewardType; label: string; icon: string }[] = [
+    { type: 'furniture', label: 'Nội thất', icon: '🪑' },
+    { type: 'item', label: 'Vật phẩm', icon: '🎁' },
+    { type: 'story', label: 'Cốt truyện', icon: '📖' },
+    { type: 'memory', label: 'Kỷ niệm', icon: '💭' },
+    { type: 'situation', label: 'Tình huống', icon: '🎭' },
+  ];
+
+  const handleStartGame = (selectedWish: GachaRewardType) => {
+    if (user.auroCoins < BAG_COST) {
       setError('Bạn không đủ Auro Coin!');
       return;
     }
+    setWish(selectedWish);
+    setBagsLeft(1);
+    setShowWishModal(false);
+    onUpdateUser({ auroCoins: user.auroCoins - BAG_COST });
+  };
 
-    setIsSpinning(true);
-    setReward(null);
+  const processReward = (result: GachaReward) => {
+    if (result.type === 'item' || result.type === 'furniture') {
+      const newItem: InventoryItem = {
+        id: `gacha_${Date.now()}`,
+        name: result.name,
+        description: result.description,
+        icon: result.icon || '🎁',
+        value: 1000,
+        affinityBonus: 5,
+        category: 'Gacha',
+        quantity: 1,
+        isFurniture: result.type === 'furniture',
+        furnitureType: 'decor'
+      };
+      onUpdateUser({ inventory: [...(user.inventory || []), newItem] });
+    } else if (result.type === 'memory') {
+      const newMemory: Memory = {
+        id: `mem_${Date.now()}`,
+        type: 'note',
+        title: result.name,
+        content: result.description,
+        timestamp: Date.now()
+      };
+      onUpdateCharacter(character.id!, { memories: [...(character.memories || []), newMemory] });
+    } else if (result.type === 'story') {
+      const newEntry: DiaryEntry = {
+        date: Date.now(),
+        content: `[Cột truyện mới: ${result.name}] ${result.description}`,
+        mood: 'Hạnh phúc'
+      };
+      onUpdateCharacter(character.id!, { diary: [...(character.diary || []), newEntry] });
+    } else if (result.type === 'situation') {
+      onAddMessage({
+        id: `sys_${Date.now()}`,
+        text: `[TÌNH HUỐNG MỚI]: ${result.description}`,
+        sender: Sender.SYSTEM,
+        timestamp: Date.now()
+      });
+    }
+  };
+
+  const handleOpenBag = async () => {
+    if (isOpening || bagsLeft <= 0) return;
+
+    setIsOpening(true);
+    setIsTearing(true);
     setError(null);
 
-    onUpdateUser({ auroCoins: user.auroCoins - GACHA_COST });
-
     try {
-      const types: GachaRewardType[] = ['furniture', 'item', 'story', 'memory', 'situation'];
-      const selectedType = types[Math.floor(Math.random() * types.length)];
+      // Logic xé túi mù
+      const selectedType = rewardTypes[Math.floor(Math.random() * rewardTypes.length)].type;
       const result = await geminiService.generateGachaReward(character, selectedType);
       
-      await new Promise(resolve => setTimeout(resolve, 3500)); // Longer spin for atmosphere
+      await new Promise(resolve => setTimeout(resolve, 1500)); // Animation tear
+      setIsTearing(false);
+      await new Promise(resolve => setTimeout(resolve, 500)); // Reveal
 
       setReward(result);
+      processReward(result);
 
-      if (result.type === 'item' || result.type === 'furniture') {
-        const newItem: InventoryItem = {
-          id: `gacha_${Date.now()}`,
-          name: result.name,
-          description: result.description,
-          icon: result.icon || '🎁',
-          value: 1000,
-          affinityBonus: 5,
-          category: 'Gacha',
-          quantity: 1,
-          isFurniture: result.type === 'furniture',
-          furnitureType: 'decor'
-        };
-        onUpdateUser({ inventory: [...(user.inventory || []), newItem] });
-      } else if (result.type === 'memory') {
-        const newMemory: Memory = {
-          id: `mem_${Date.now()}`,
-          type: 'note',
-          title: result.name,
-          content: result.description,
-          timestamp: Date.now()
-        };
-        onUpdateCharacter(character.id!, { memories: [...(character.memories || []), newMemory] });
-      } else if (result.type === 'story') {
-        const newEntry: DiaryEntry = {
-          date: Date.now(),
-          content: `[Cột truyện mới: ${result.name}] ${result.description}`,
-          mood: 'Hạnh phúc'
-        };
-        onUpdateCharacter(character.id!, { diary: [...(character.diary || []), newEntry] });
-      } else if (result.type === 'situation') {
-        onAddMessage({
-          id: `sys_${Date.now()}`,
-          text: `[TÌNH HUỐNG MỚI]: ${result.description}`,
-          sender: Sender.SYSTEM,
-          timestamp: Date.now()
-        });
+      let extraBags = 0;
+      let comboMsg = "";
+
+      // Check Nguyện vọng (Wish match)
+      if (result.type === wish) {
+        extraBags += 1;
+        comboMsg = "✨ Trúng nguyện vọng! Tặng thêm 1 túi!";
       }
+
+      // Check Gắp cặp (Pair match)
+      const lastReward = recentRewards[recentRewards.length - 1];
+      if (lastReward && lastReward.type === result.type) {
+        extraBags += 1;
+        comboMsg += " 👯 Gắp được cặp! Tặng thêm 1 túi!";
+      }
+
+      if (extraBags > 0) {
+        setComboCount(prev => prev + extraBags);
+        setBagsLeft(prev => prev + extraBags - 1);
+      } else {
+        setBagsLeft(prev => prev - 1);
+      }
+
+      setRecentRewards(prev => [...prev, result]);
+
     } catch (err) {
       console.error("Gacha Error:", err);
       setError('Có lỗi xảy ra. Vui lòng thử lại!');
-      onUpdateUser({ auroCoins: user.auroCoins });
     } finally {
-      setIsSpinning(false);
+      setIsOpening(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center p-6 text-white font-sans">
-      {/* Atmospheric Background */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-900/30 rounded-full blur-[150px] animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-900/30 rounded-full blur-[150px] animate-pulse delay-1000"></div>
+    <div className="fixed inset-0 z-[100] bg-[#1a1a1a] flex flex-col items-center justify-center p-6 text-white font-sans overflow-hidden">
+      {/* Background Decor */}
+      <div className="absolute inset-0 opacity-20 pointer-events-none">
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-yellow-900/20 via-transparent to-transparent"></div>
+        <div className="grid grid-cols-8 gap-4 p-4">
+          {Array.from({ length: 32 }).map((_, i) => (
+            <div key={i} className="text-4xl opacity-10 grayscale">🛍️</div>
+          ))}
+        </div>
       </div>
 
       {/* Header */}
       <div className="absolute top-8 left-8 z-20">
-        <button onClick={onBack} className="text-white/60 hover:text-white transition-colors">
-          <i className="fa-solid fa-chevron-left text-2xl"></i>
+        <button onClick={onBack} className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all">
+          <i className="fa-solid fa-chevron-left"></i>
         </button>
       </div>
 
-      <div className="absolute top-8 right-8 z-20 flex items-center gap-3 bg-white/5 backdrop-blur-md px-6 py-3 rounded-full border border-white/10">
-        <img src="https://i.ibb.co/k6KC8zyN/media-1769361739.png" className="w-6 h-6" alt="Coin" />
-        <span className="text-xl font-light tracking-widest">{user.auroCoins.toLocaleString()}</span>
+      <div className="absolute top-8 right-8 z-20 flex flex-col items-end gap-2">
+        <div className="flex items-center gap-3 bg-black/40 backdrop-blur-xl px-6 py-3 rounded-2xl border border-white/10 shadow-xl">
+          <img src="https://i.ibb.co/k6KC8zyN/media-1769361739.png" className="w-6 h-6" alt="Coin" />
+          <span className="text-xl font-black tracking-tight">{user.auroCoins.toLocaleString()}</span>
+        </div>
+        {bagsLeft > 0 && (
+          <motion.div 
+            initial={{ scale: 0 }} animate={{ scale: 1 }}
+            className="bg-yellow-500 text-black px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg"
+          >
+            Còn {bagsLeft} túi mù
+          </motion.div>
+        )}
       </div>
 
-      {/* Main Content */}
-      <div className="relative z-10 flex flex-col items-center">
-        <h1 className="text-6xl font-thin tracking-tighter mb-16 text-white/90">Auro Portal</h1>
+      {/* Wish Selection Modal */}
+      <AnimatePresence>
+        {showWishModal && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[120] bg-black/90 backdrop-blur-md flex items-center justify-center p-6"
+          >
+            <div className="bg-[#2a2a2a] w-full max-w-md rounded-[3rem] p-8 border border-white/10 shadow-2xl text-center">
+              <div className="w-20 h-20 bg-yellow-500/20 rounded-full flex items-center justify-center text-4xl mx-auto mb-6 text-yellow-500">
+                <i className="fa-solid fa-wand-magic-sparkles"></i>
+              </div>
+              <h2 className="text-2xl font-black uppercase tracking-tighter mb-2">Chọn Nguyện Vọng</h2>
+              <p className="text-xs text-white/50 mb-8 uppercase tracking-widest">Nếu xé trúng loại này, bạn sẽ được tặng thêm túi!</p>
+              
+              <div className="grid grid-cols-2 gap-3 mb-8">
+                {rewardTypes.map((rt) => (
+                  <button
+                    key={rt.type}
+                    onClick={() => handleStartGame(rt.type)}
+                    className="flex flex-col items-center gap-2 p-4 rounded-3xl bg-white/5 border border-white/5 hover:bg-yellow-500 hover:text-black transition-all group"
+                  >
+                    <span className="text-3xl group-hover:scale-125 transition-transform">{rt.icon}</span>
+                    <span className="text-[10px] font-black uppercase">{rt.label}</span>
+                  </button>
+                ))}
+              </div>
 
-        {/* The Machine (SVG) */}
-        <div className="relative w-64 h-80">
-          <svg viewBox="0 0 200 250" className="w-full h-full drop-shadow-2xl">
-            <defs>
-              <radialGradient id="domeGrad" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
-                <stop offset="0%" style={{stopColor: '#ffffff', stopOpacity: 0.3}} />
-                <stop offset="100%" style={{stopColor: '#ffffff', stopOpacity: 0}} />
-              </radialGradient>
-              <linearGradient id="baseGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" style={{stopColor: '#ef4444', stopOpacity: 1}} />
-                <stop offset="100%" style={{stopColor: '#b91c1c', stopOpacity: 1}} />
-              </linearGradient>
-            </defs>
-            
-            {/* Top Dome */}
-            <path d="M30 100 A 70 70 0 1 1 170 100 L 170 120 L 30 120 Z" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="2" />
-            <path d="M40 100 A 60 60 0 1 1 160 100 L 160 115 L 40 115 Z" fill="url(#domeGrad)" />
-            
-            {/* Base */}
-            <rect x="30" y="120" width="140" height="100" rx="15" fill="url(#baseGrad)" stroke="#991b1b" strokeWidth="2" />
-            
-            {/* Dispenser Hole */}
-            <rect x="70" y="170" width="60" height="40" rx="5" fill="#7f1d1d" />
-            <rect x="75" y="175" width="50" height="30" rx="3" fill="#fef3c7" />
-            
-            {/* Handle Base */}
-            <circle cx="100" cy="150" r="20" fill="#991b1b" stroke="#7f1d1d" strokeWidth="2" />
-            
-            {/* Handle (Rotating Part) */}
-            <motion.g
-              animate={isSpinning ? { rotate: 720 } : { rotate: 0 }}
-              transition={{ duration: 2, ease: "easeInOut" }}
-              style={{ originX: '100px', originY: '150px' }}
-            >
-              <rect x="90" y="145" width="20" height="10" rx="2" fill="#fef3c7" />
-              <rect x="95" y="140" width="10" height="20" rx="2" fill="#fef3c7" />
-            </motion.g>
-          </svg>
+              <div className="flex flex-col gap-4">
+                <p className="text-[10px] text-white/30 uppercase tracking-widest">Chi phí: {BAG_COST.toLocaleString()} Xu / Lượt</p>
+                
+                <button 
+                  onClick={onBack}
+                  className="mt-4 py-3 px-6 rounded-full bg-white/10 text-white/60 text-[10px] font-black uppercase tracking-widest hover:bg-white/20 hover:text-white transition-all"
+                >
+                  <i className="fa-solid fa-house mr-2"></i> Về trang chủ
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-          {/* Balls inside the dome */}
-          <div className="absolute top-10 left-1/2 -translate-x-1/2 w-32 h-24 overflow-hidden pointer-events-none">
-            {[...Array(12)].map((_, i) => (
+      {/* Main Game Area */}
+      <div className="relative z-10 flex flex-col items-center w-full max-w-lg">
+        <h1 className="text-4xl font-black uppercase tracking-tighter mb-12 text-center">
+          <span className="text-yellow-500">Xé Túi Mù</span> <br/>
+          <span className="text-sm font-normal text-white/40 tracking-[0.3em]">Blind Bag Opening</span>
+        </h1>
+
+        <div className="relative w-full aspect-square flex items-center justify-center">
+          <AnimatePresence mode="wait">
+            {!reward && !isOpening && bagsLeft > 0 && (
               <motion.div
-                key={i}
-                animate={isSpinning ? { 
-                  x: [0, Math.random() * 40 - 20, 0],
-                  y: [0, Math.random() * 40 - 20, 0],
-                  rotate: [0, 360]
-                } : {}}
-                transition={{ duration: 0.5, repeat: isSpinning ? Infinity : 0 }}
-                className={`absolute w-6 h-6 rounded-full border-2 border-white/20 shadow-inner`}
-                style={{
-                  backgroundColor: ['#f43f5e', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'][i % 5],
-                  left: `${(i % 4) * 25 + 10}%`,
-                  top: `${Math.floor(i / 4) * 25 + 10}%`,
-                }}
-              />
-            ))}
-          </div>
-
-          {/* Result Ball Animation */}
-          <AnimatePresence>
-            {isSpinning && (
-              <motion.div
-                initial={{ scale: 0, y: 150, x: 100 }}
-                animate={{ 
-                  scale: [0, 1.2, 1],
-                  y: [150, 195],
-                  x: 100
-                }}
-                transition={{ delay: 2.5, duration: 0.5 }}
-                className="absolute w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full border-2 border-white shadow-lg flex items-center justify-center z-20"
-                style={{ left: 'calc(50% - 20px)', top: '0' }}
+                key="bag"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 1.2, opacity: 0 }}
+                onClick={handleOpenBag}
+                className="cursor-pointer group relative"
               >
-                <i className="fa-solid fa-star text-white text-xs animate-spin"></i>
+                <div className="w-64 h-80 bg-gradient-to-b from-yellow-400 to-yellow-600 rounded-[2rem] shadow-2xl flex flex-col items-center justify-center p-8 border-4 border-yellow-300 relative overflow-hidden">
+                  <div className="absolute inset-0 opacity-20 bg-[repeating-linear-gradient(45deg,_transparent,_transparent_10px,_rgba(255,255,255,0.2)_10px,_rgba(255,255,255,0.2)_20px)]"></div>
+                  <div className="text-8xl mb-4 drop-shadow-lg">🛍️</div>
+                  <div className="bg-black/20 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest">Mystery Bag</div>
+                  
+                  {/* Tear line */}
+                  <div className="absolute top-12 left-0 right-0 h-1 border-t-2 border-dashed border-white/40"></div>
+                </div>
+                <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap bg-white text-black px-6 py-2 rounded-full text-xs font-black uppercase shadow-xl group-hover:scale-110 transition-transform">
+                  Chạm để xé!
+                </div>
+              </motion.div>
+            )}
+
+            {isTearing && (
+              <motion.div
+                key="tearing"
+                className="relative w-64 h-80"
+              >
+                <motion.div 
+                  animate={{ y: -100, rotate: -10, opacity: 0 }}
+                  className="absolute top-0 left-0 right-0 h-20 bg-yellow-400 rounded-t-[2rem] border-4 border-yellow-300 z-20"
+                />
+                <div className="w-64 h-80 bg-yellow-500 rounded-[2rem] border-4 border-yellow-300 flex items-center justify-center">
+                  <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity }} className="text-6xl">✨</motion.div>
+                </div>
+              </motion.div>
+            )}
+
+            {reward && !isOpening && (
+              <motion.div
+                key="reward"
+                initial={{ scale: 0.5, opacity: 0, rotateY: 180 }}
+                animate={{ scale: 1, opacity: 1, rotateY: 0 }}
+                className="flex flex-col items-center"
+              >
+                <div className="w-64 h-64 bg-white/5 backdrop-blur-3xl rounded-[3rem] border border-white/20 flex items-center justify-center text-9xl shadow-2xl mb-8 relative">
+                  <div className="absolute inset-0 bg-gradient-to-tr from-yellow-500/20 to-transparent rounded-[3rem]"></div>
+                  {reward.icon}
+                  
+                  {reward.type === wish && (
+                    <div className="absolute -top-4 -right-4 bg-yellow-500 text-black w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-lg border-4 border-[#1a1a1a] animate-bounce">
+                      <i className="fa-solid fa-star"></i>
+                    </div>
+                  )}
+                </div>
+                
+                <h2 className="text-3xl font-black uppercase tracking-tighter text-center mb-2">{reward.name}</h2>
+                <p className="text-white/50 text-center text-sm italic max-w-xs mb-8">"{reward.description}"</p>
+                
+                <div className="flex gap-4">
+                  {bagsLeft > 0 ? (
+                    <button
+                      onClick={() => setReward(null)}
+                      className="px-10 py-4 rounded-full bg-yellow-500 text-black font-black uppercase text-xs tracking-widest shadow-xl hover:scale-105 transition-transform"
+                    >
+                      Tiếp tục xé ({bagsLeft})
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setReward(null);
+                        setShowWishModal(true);
+                        setRecentRewards([]);
+                      }}
+                      className="px-10 py-4 rounded-full bg-white text-black font-black uppercase text-xs tracking-widest shadow-xl hover:scale-105 transition-transform"
+                    >
+                      Chơi lượt mới
+                    </button>
+                  )}
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
 
-        {/* Spin Button */}
-        <button
-          onClick={handleSpin}
-          disabled={isSpinning}
-          className="mt-12 px-12 py-4 rounded-full bg-white/5 backdrop-blur-md border border-white/10 hover:bg-white/10 transition-all active:scale-95"
-        >
-          <span className="text-sm font-medium tracking-[0.2em] uppercase text-white/80">
-            {isSpinning ? '...' : 'Vặn ngay'}
-          </span>
-        </button>
-
-        <p className="mt-12 text-white/40 text-sm tracking-widest uppercase">Chi phí: 3,000 Auro Coin</p>
-        {error && <p className="mt-4 text-rose-400 text-sm">{error}</p>}
+        {/* Recent Rewards Tray */}
+        <div className="mt-12 w-full overflow-x-auto pb-4 custom-scrollbar">
+          <div className="flex gap-3 justify-center min-w-max px-4">
+            {recentRewards.map((r, i) => (
+              <div key={i} className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center text-2xl border border-white/5">
+                {r.icon}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* Reward Popup */}
-      <AnimatePresence>
-        {reward && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[110] bg-black/80 backdrop-blur-2xl flex items-center justify-center p-6"
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-10 w-full max-w-sm text-center"
-            >
-              <div className="text-7xl mb-8">{reward.icon}</div>
-              <h2 className="text-3xl font-light mb-4">{reward.name}</h2>
-              <p className="text-white/60 mb-8 italic leading-relaxed">"{reward.description}"</p>
-              <button
-                onClick={() => setReward(null)}
-                className="w-full py-4 rounded-full border border-white/20 hover:bg-white/10 transition-all uppercase tracking-widest text-xs"
-              >
-                Đóng
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {error && (
+        <motion.div 
+          initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+          className="fixed bottom-12 bg-rose-500 text-white px-8 py-3 rounded-full text-xs font-black uppercase tracking-widest shadow-2xl"
+        >
+          {error}
+        </motion.div>
+      )}
     </div>
   );
 };
 
 export default GachaView;
+

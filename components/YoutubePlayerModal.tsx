@@ -21,6 +21,14 @@ const YoutubePlayerModal: React.FC<YoutubePlayerModalProps> = ({ isOpen, onClose
   if (!isOpen || !mounted) return null;
 
   const extractVideoId = (link: string) => {
+    if (!link) return null;
+    if (link.includes('/shorts/')) {
+        const parts = link.split('/shorts/');
+        if (parts.length > 1) {
+            const idPart = parts[1].split(/[?#&]/)[0];
+            if (idPart.length === 11) return idPart;
+        }
+    }
     const match = link.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/);
     return match ? match[1] : null;
   };

@@ -317,7 +317,15 @@ const UserPhoneView: React.FC<UserPhoneProps> = ({ user, onUpdateUser, onClose, 
   };
 
   const getYoutubeVideoId = (url: string) => {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?]*).*/;
+    if (!url) return null;
+    if (url.includes('/shorts/')) {
+        const parts = url.split('/shorts/');
+        if (parts.length > 1) {
+            const idPart = parts[1].split(/[?#&]/)[0];
+            if (idPart.length === 11) return idPart;
+        }
+    }
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
     const match = url.match(regExp);
     return (match && match[2].length === 11) ? match[2] : null;
   };
@@ -673,15 +681,11 @@ const UserPhoneView: React.FC<UserPhoneProps> = ({ user, onUpdateUser, onClose, 
                                         .map(link => getYoutubeVideoId(link))
                                         .filter(id => id !== null) as string[];
                                     
-                                    // If we have multiple links, play them in sequence
                                     if (allIds.length > 1) {
-                                        // Ensure current ID is first if possible, or just play the list
                                         return allIds.join(',');
                                     }
                                     
-                                    // If single video (or empty list but selected exists), repeat it 10 times for smoother looping
-                                    // This tricks YouTube into preloading the "next" video (which is the same one)
-                                    return Array(10).fill(currentId).join(',');
+                                    return currentId;
                                 })()
                             }`}
                             title="YouTube video player" 

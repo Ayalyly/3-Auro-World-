@@ -89,7 +89,7 @@ export class FirebaseService {
       this.auth = getAuth(this.app);
       this.db = initializeFirestore(this.app, {
         localCache: persistentLocalCache(),
-        // experimentalForceLongPolling: true // DISABLED to save quota
+        experimentalForceLongPolling: true // ENABLED to fix Safari/iOS iframe issues
       });
       this.isInitialized = true;
       this.serverName = serverName;
@@ -234,7 +234,7 @@ export class FirebaseService {
     sourcePin: string,
     destWorldId: string,
     destPin: string,
-    onProgress: (msg: string) => void
+    onProgress: (msg: string, current?: number, total?: number) => void
   ): Promise<void> {
     const normalizedSourceId = this.normalizeId(sourceWorldId);
     const normalizedDestId = this.normalizeId(destWorldId);
@@ -272,7 +272,7 @@ export class FirebaseService {
           }
           allChars.push({ id: charDoc.id, data: charData, chunks });
           loadedChars++;
-          onProgress(`Đã tải ${loadedChars}/${charsSnap.docs.length} nhân vật...`);
+          onProgress(`Đã tải ${loadedChars}/${charsSnap.docs.length} nhân vật...`, loadedChars, charsSnap.docs.length);
         }
 
         // 3. Connect to new server
@@ -300,7 +300,7 @@ export class FirebaseService {
             await this.withTimeout(setDoc(newChunkRef, chunk.data), 10000, "Lỗi lưu tin nhắn");
           }
           savedChars++;
-          onProgress(`Đã đồng bộ ${savedChars}/${allChars.length} nhân vật...`);
+          onProgress(`Đã đồng bộ ${savedChars}/${allChars.length} nhân vật...`, savedChars, allChars.length);
         }
         
         // Set current world ID so it's ready
@@ -325,7 +325,7 @@ export class FirebaseService {
     sourceWorldId: string,
     destWorldId: string,
     destPin: string,
-    onProgress: (msg: string) => void
+    onProgress: (msg: string, current?: number, total?: number) => void
   ): Promise<void> {
     const normalizedSourceId = this.normalizeId(sourceWorldId);
     const normalizedDestId = this.normalizeId(destWorldId);
@@ -377,7 +377,7 @@ export class FirebaseService {
             this.currentWorldId = normalizedDestId; 
             await this.saveCharacterToWorld(charData.id, charData.char, charData.user, charData.msgs);
             savedChars++;
-            onProgress(`Đã đồng bộ ${savedChars}/${allChars.length} nhân vật...`);
+            onProgress(`Đã đồng bộ ${savedChars}/${allChars.length} nhân vật...`, savedChars, allChars.length);
         }
         
         onProgress("Đồng bộ hoàn tất!");
@@ -682,7 +682,8 @@ export class FirebaseService {
             charAvatar: docData.char.avatar || "",
             userName: docData.user?.name || "Unknown",
             lastPlayed: docData.updatedAt || Date.now(),
-            level: docData.char.relationshipScore ? Math.floor(docData.char.relationshipScore / 100) + 1 : 1
+            level: docData.char.relationshipScore ? Math.floor(docData.char.relationshipScore / 100) + 1 : 1,
+            isLocalOnly: false
           });
         }
       });
@@ -808,7 +809,7 @@ export class FirebaseService {
         // --- BATCH SETUP ---
         let currentBatch = writeBatch(this.db);
         let opCount = 0;
-        const MAX_BATCH_SIZE = 100; // Reduced from 400 to 100 to prevent write exhaustion
+        const MAX_BATCH_SIZE = 50; // Reduced from 100 to 50 to prevent write exhaustion
 
         const commitBatch = async () => {
             if (opCount > 0) {
@@ -816,7 +817,7 @@ export class FirebaseService {
                 currentBatch = writeBatch(this.db!);
                 opCount = 0;
                 // Add a small delay to let the backend breathe
-                await new Promise(resolve => setTimeout(resolve, 500));
+                await new Promise(resolve => setTimeout(resolve, 1000));
             }
         };
 

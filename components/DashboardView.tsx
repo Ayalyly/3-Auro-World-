@@ -19,6 +19,7 @@ interface DashboardViewProps {
   onLoadAllCharacters?: () => void;
   onLoadLocalCharacters?: () => void;
   onSyncLocalToCloud?: () => void;
+  syncProgress?: { current: number; total: number } | null;
   t: (key: string) => string;
   onUpdateUser?: (user: UserProfile) => void;
   shopItems?: InventoryItem[];
@@ -42,6 +43,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
   onLoadAllCharacters,
   onLoadLocalCharacters,
   onSyncLocalToCloud,
+  syncProgress,
   t,
   onUpdateUser,
   shopItems = []
@@ -1090,6 +1092,26 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                   )}
                 </div>
               </div>
+
+              {syncProgress && (
+                <div className="px-2 py-3 bg-white/50 rounded-2xl border border-emerald-100 shadow-sm animate-in slide-in-from-top-2 duration-300">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-2">
+                      <i className="fa-solid fa-circle-notch fa-spin"></i>
+                      Đang đồng bộ cư dân...
+                    </span>
+                    <span className="text-[10px] font-black text-emerald-500">
+                      {syncProgress.current} / {syncProgress.total}
+                    </span>
+                  </div>
+                  <div className="h-2 bg-emerald-50 rounded-full overflow-hidden border border-emerald-100">
+                    <div 
+                      className="h-full bg-gradient-to-r from-emerald-400 to-teal-500 transition-all duration-300 ease-out shadow-[0_0_10px_rgba(52,211,153,0.3)]"
+                      style={{ width: `${(syncProgress.current / syncProgress.total) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
               
               {slots.map(slot => (
                 <div 

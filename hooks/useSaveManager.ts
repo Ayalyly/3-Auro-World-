@@ -40,6 +40,7 @@ export function useSaveManager(
   const [user, setUser] = useState<UserProfile>(DEFAULT_USER);
   const [messages, setMessages] = useState<Message[]>([]);
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isSyncingRef = useRef<boolean>(false);
   const distributionServiceRef = useRef<DistributionService>(new DistributionService(firebaseRef.current));
 
   useEffect(() => {
@@ -51,7 +52,15 @@ export function useSaveManager(
 
     return new Promise((resolve) => {
       syncTimeoutRef.current = setTimeout(async () => {
+        if (isSyncingRef.current) {
+          // If already syncing, reschedule
+          syncToFirebase(char, userObj, msgs);
+          resolve();
+          return;
+        }
+
         try {
+          isSyncingRef.current = true;
           const slotId = (window as any).currentSlotId as string | undefined;
           if (!slotId) {
             resolve();
@@ -88,9 +97,10 @@ export function useSaveManager(
         } catch (e) {
           console.error("Sync error:", e);
         } finally {
+          isSyncingRef.current = false;
           resolve();
         }
-      }, 5000);
+      }, 10000);
     });
   };
 

@@ -20,6 +20,7 @@ export const MigrateTab: React.FC<MigrateTabProps> = ({ firebaseService, onSucce
 
     const [migratePhase, setMigratePhase] = useState<'idle' | 'migrating' | 'success' | 'error'>('idle');
     const [migrateProgress, setMigrateProgress] = useState('');
+    const [migrateNumericProgress, setMigrateNumericProgress] = useState<{ current: number; total: number } | null>(null);
     const [migrateError, setMigrateError] = useState('');
 
     const parseFirebaseConfig = (input: string): FirebaseConfig | null => {
@@ -73,6 +74,7 @@ export const MigrateTab: React.FC<MigrateTabProps> = ({ firebaseService, onSucce
         setMigratePhase('migrating');
         setMigrateError('');
         setMigrateProgress('Bắt đầu quá trình đồng bộ...');
+        setMigrateNumericProgress(null);
 
         try {
             if (migrateSourceServerKey === 'current_cache') {
@@ -81,7 +83,12 @@ export const MigrateTab: React.FC<MigrateTabProps> = ({ firebaseService, onSucce
                     migrateSourceWorldId,
                     migrateDestWorldId,
                     migrateDestPinCode,
-                    (msg: string) => setMigrateProgress(msg)
+                    (msg: string, current?: number, total?: number) => {
+                        setMigrateProgress(msg);
+                        if (current !== undefined && total !== undefined) {
+                            setMigrateNumericProgress({ current, total });
+                        }
+                    }
                 );
             } else {
                 await firebaseService.migrateWorld(
@@ -92,7 +99,12 @@ export const MigrateTab: React.FC<MigrateTabProps> = ({ firebaseService, onSucce
                     migrateSourcePinCode,
                     migrateDestWorldId,
                     migrateDestPinCode,
-                    (msg: string) => setMigrateProgress(msg)
+                    (msg: string, current?: number, total?: number) => {
+                        setMigrateProgress(msg);
+                        if (current !== undefined && total !== undefined) {
+                            setMigrateNumericProgress({ current, total });
+                        }
+                    }
                 );
             }
             setMigratePhase('success');
@@ -237,7 +249,22 @@ export const MigrateTab: React.FC<MigrateTabProps> = ({ firebaseService, onSucce
                     </div>
                     <div>
                         <p className="text-xs font-black text-slate-700 uppercase tracking-widest mb-1">Đang đồng bộ dữ liệu</p>
-                        <p className="text-[10px] text-slate-500 font-medium">{migrateProgress}</p>
+                        <p className="text-[10px] text-slate-500 font-medium mb-3">{migrateProgress}</p>
+                        
+                        {migrateNumericProgress && (
+                            <div className="w-48 mx-auto">
+                                <div className="flex justify-between items-center mb-1">
+                                    <span className="text-[9px] font-bold text-blue-500 uppercase tracking-tighter">Tiến độ</span>
+                                    <span className="text-[9px] font-bold text-blue-500">{migrateNumericProgress.current}/{migrateNumericProgress.total}</span>
+                                </div>
+                                <div className="h-1.5 bg-blue-50 rounded-full overflow-hidden border border-blue-100">
+                                    <div 
+                                        className="h-full bg-gradient-to-r from-blue-400 to-indigo-500 transition-all duration-300"
+                                        style={{ width: `${(migrateNumericProgress.current / migrateNumericProgress.total) * 100}%` }}
+                                    />
+                                </div>
+                            </div>
+                        )}
                     </div>
                     <p className="text-[9px] text-rose-500 font-bold italic mt-4">Vui lòng không đóng cửa sổ này!</p>
                 </div>

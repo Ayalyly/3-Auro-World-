@@ -56,8 +56,14 @@ const DEFAULT_USER: UserProfile = {
 };
 
 
-const OverlayWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+const OverlayWrapper: React.FC<{ children: React.ReactNode, isSafari?: boolean, onDismissBrowserWarning?: () => void }> = ({ children, isSafari, onDismissBrowserWarning }) => (
   <div className="fixed inset-0 z-50 bg-slate-100 h-[100dvh] w-full overflow-hidden animate-in slide-in-from-bottom-2 duration-150">
+    {isSafari && onDismissBrowserWarning && (
+      <div className="bg-amber-500 text-white p-3 text-center text-xs font-bold flex justify-between items-center z-[60] relative">
+        <span>Bạn đang dùng Safari, điều này có thể gây lỗi lưu dữ liệu. Vui lòng chuyển sang trình duyệt Chrome để có trải nghiệm tốt nhất!</span>
+        <button onClick={onDismissBrowserWarning} className="ml-2 bg-amber-600 px-2 py-1 rounded">Đóng</button>
+      </div>
+    )}
     {children}
   </div>
 );
@@ -79,6 +85,7 @@ export default function App() {
   const [shopItems, setShopItems] = useState<InventoryItem[]>([]);
   const [notification, setNotification] = useState<{ title: string; message: string; type?: 'info' | 'warning' | 'success' | 'error' } | null>(null);
   const [dismissedOfflineWarning, setDismissedOfflineWarning] = useState(false);
+  const [dismissedBrowserWarning, setDismissedBrowserWarning] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -96,6 +103,11 @@ export default function App() {
       setView('phone');
     }
   }, [view]);
+
+  const isSafari = useMemo(() => {
+    const ua = navigator.userAgent;
+    return /^((?!chrome|android).)*safari/i.test(ua);
+  }, []);
 
   const geminiRef = useRef(new GeminiService());
   const shopServiceRef = useRef(new ShopService(geminiRef.current));
@@ -117,6 +129,7 @@ export default function App() {
     slots, setSlots,
     isLoading, setIsLoading,
     isLoadingMore, setIsLoadingMore,
+    syncProgress,
     handleJoinWorld,
     handlePreloadOnline,
     handleEnterOnline,
@@ -780,9 +793,11 @@ export default function App() {
 
       if (aiYoutubeMatch && character.reactions) {
           const reaction = aiYoutubeMatch[1].trim();
-          const videoId = character.reactions[reaction];
-          if (videoId) {
-              setPlayingVideoId(videoId);
+          if (reaction) {
+              const videoId = character.reactions[reaction];
+              if (videoId) {
+                  setPlayingVideoId(videoId);
+              }
           }
       }
 
@@ -1498,6 +1513,7 @@ export default function App() {
           onLoadAllCharacters={handleLoadAllCharacters}
           onLoadLocalCharacters={handleLoadLocalCharacters}
           onSyncLocalToCloud={handleSyncLocalToCloud}
+          syncProgress={syncProgress}
           t={t}
         />
       );

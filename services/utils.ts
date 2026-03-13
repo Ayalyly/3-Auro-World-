@@ -8,6 +8,7 @@ export const sanitizePayload = (data: any): any => {
     const cleanObj: any = {};
     Object.keys(data).forEach((key) => {
       if (typeof data[key] === "function") return;
+      if (key === "") return; // Skip empty keys for Firestore compatibility
       const val = sanitizePayload(data[key]);
       if (val !== undefined) cleanObj[key] = val;
     });

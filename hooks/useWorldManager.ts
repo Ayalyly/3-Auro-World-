@@ -19,6 +19,7 @@ export function useWorldManager(
   const [slots, setSlots] = useState<SaveSlot[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [syncProgress, setSyncProgress] = useState<{ current: number; total: number } | null>(null);
 
   const handleJoinWorld = async (id: string, mode: 'offline' | 'online') => {
     setWorldId(id);
@@ -95,7 +96,8 @@ export function useWorldManager(
                 charAvatar: data.character.avatar,
                 userName: data.user.name,
                 lastPlayed: data.character.updatedAt || Date.now(),
-                level: data.character.relationshipScore ? Math.floor(data.character.relationshipScore / 100) + 1 : 1
+                level: data.character.relationshipScore ? Math.floor(data.character.relationshipScore / 100) + 1 : 1,
+                isLocalOnly: true
               });
             }
           }
@@ -185,14 +187,17 @@ export function useWorldManager(
     }
     
     setIsLoading(true);
+    setSyncProgress({ current: 0, total: 0 });
     try {
       const localSlots = getLocalSlotsForWorld(worldId);
       if (localSlots.length === 0) {
         setNotification({ title: 'Thông báo', message: "Không tìm thấy dữ liệu trình duyệt để đồng bộ.", type: 'info' });
         setIsLoading(false);
+        setSyncProgress(null);
         return;
       }
 
+      setSyncProgress({ current: 0, total: localSlots.length });
       let successCount = 0;
       for (const slot of localSlots) {
         const dataStr = localStorage.getItem(`save_${slot.id}`);
@@ -205,7 +210,11 @@ export function useWorldManager(
               data.user,
               data.messages || []
             );
+            localStorage.removeItem(`save_${slot.id}`);
             successCount++;
+            setSyncProgress({ current: successCount, total: localSlots.length });
+            // Add a delay between slots to prevent write stream exhaustion
+            await new Promise(resolve => setTimeout(resolve, 1000));
           }
         }
       }
@@ -222,6 +231,7 @@ export function useWorldManager(
       setNotification({ title: 'Lỗi đồng bộ', message: e.message || "Có lỗi xảy ra khi đồng bộ.", type: 'error' });
     } finally {
       setIsLoading(false);
+      setSyncProgress(null);
     }
   };
 
@@ -236,6 +246,7 @@ export function useWorldManager(
     slots, setSlots,
     isLoading, setIsLoading,
     isLoadingMore, setIsLoadingMore,
+    syncProgress,
     handleJoinWorld,
     handlePreloadOnline,
     handleEnterOnline,

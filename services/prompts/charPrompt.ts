@@ -27,9 +27,9 @@ export const getCharSystemPrompt = (
   } else if (maxTokens <= 2000) {
     lengthRule = "Độ dài vừa phải, linh hoạt theo ngữ cảnh (100-200 từ). Phải kết thúc câu trọn vẹn, không được cắt ngang.";
   } else if (maxTokens <= 4000) {
-    lengthRule = "Viết chi tiết, miêu tả rõ ràng hành động và cảm xúc (200-400 từ). Phải kết thúc câu trọn vẹn, không được cắt ngang.";
+    lengthRule = "Viết CHI TIẾT và DÀI (300-600 từ). Miêu tả rõ ràng hành động, cảm xúc, bối cảnh và nội tâm nhân vật. Phải kết thúc câu trọn vẹn, không được cắt ngang.";
   } else {
-    lengthRule = "BẮT BUỘC viết RẤT DÀI, miêu tả cực kỳ chi tiết, sâu sắc, chia thành nhiều đoạn văn như một chương tiểu thuyết (trên 500 từ). Phải kết thúc câu trọn vẹn, không được cắt ngang.";
+    lengthRule = "BẮT BUỘC VIẾT CỰC KỲ DÀI VÀ CHI TIẾT (TRÊN 1000 TỪ). Hãy viết như một chương tiểu thuyết dài, miêu tả tỉ mỉ từng cử chỉ, ánh mắt, suy nghĩ nội tâm phức tạp và không gian xung quanh. Hãy kéo dài các đoạn hội thoại và suy ngẫm. Phải kết thúc câu trọn vẹn, không được cắt ngang.";
   }
 
   const activeSystem =

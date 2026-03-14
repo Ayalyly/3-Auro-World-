@@ -254,7 +254,11 @@ export default function SetupScreen({
                   const json = JSON.parse(ev.target?.result as string);
                   const charData = json.character || json; 
                   if (charData.name) {
-                      setCharName(charData.name); setCharDesc(charData.description || ''); setCharOpening(charData.openingMessage || ''); setCharAvatar(charData.avatar || '');
+                      setCharName(charData.name); 
+                      setCharDesc(charData.description || ''); 
+                      setCharOpening(charData.openingMessage || ''); 
+                      setCharAvatar(charData.avatar || '');
+                      setCharAppearance(charData.appearance || '');
                       if (charData.language) setCharLanguage(charData.language);
                       if (json.user) { setUserName(json.user.name || ''); setUserDesc(json.user.description || ''); setUserAvatar(json.user.avatar || ''); }
                   }
@@ -497,7 +501,8 @@ export default function SetupScreen({
             notifications: [], mood: 'Hạnh phúc', behavior: { jealousy: 3, possessiveness: 3, initiative: 5, lying: 1, sarcasm: 2, romantic: 4, stoic: 3 },
             diary: [], relations: enrichedRelations, 
             world: { currency: socialEco.currencyName || 'Xu', shopNPCs: socialEco.shopNPCs || [], shopItems: [] },
-            branches: [{ id: 'main', name: 'Nhánh chính (Gốc)', createdAt: Date.now() }]
+            branches: [{ id: 'main', name: 'Nhánh chính (Gốc)', createdAt: Date.now() }],
+            appearance: getFinalValue(charAppearance, importedChar?.appearance),
         };
 
         cleanupDraft();

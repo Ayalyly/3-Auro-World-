@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Character, Relation, Transaction, AppSettings, IncomeStream, Expense, Message, Sender, UserProfile, UserNPCRelation } from '../types';
 import { GeminiService } from '../services/geminiService';
+import { customConfirm } from './CustomDialog';
 
 interface PhoneViewProps {
   character: Character;
@@ -536,9 +537,9 @@ const RealisticPhoneView: React.FC<PhoneViewProps> = ({
       }, 500);
   };
 
-  const handleDeleteContact = () => {
+  const handleDeleteContact = async () => {
       if (!selectedRelation || !onUpdateCharacter || selectedRelation.id === 'new') return;
-      if (!confirm(`Bạn có chắc muốn xóa NPC ${selectedRelation.name}?`)) return;
+      if (!(await customConfirm(`Bạn có chắc muốn xóa NPC ${selectedRelation.name}?`))) return;
       
       const updatedRelations = characterRef.current.relations?.filter(r => r.id !== selectedRelation.id) || [];
       onUpdateCharacter({ ...characterRef.current, relations: updatedRelations });

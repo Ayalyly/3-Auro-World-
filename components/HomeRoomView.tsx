@@ -92,7 +92,8 @@ const PixelCharacter = ({
     pixelated = true,
     showName = true,
     walkSpeed = 0.5,
-    isThinking = false
+    isThinking = false,
+    bubbleColor = '#8d6e63'
 }: { 
     avatarUrl: string, 
     characterName: string, 
@@ -104,7 +105,8 @@ const PixelCharacter = ({
     pixelated?: boolean,
     showName?: boolean,
     walkSpeed?: number,
-    isThinking?: boolean
+    isThinking?: boolean,
+    bubbleColor?: string
 }) => {
     // Randomize initial position
     const getRandomPos = () => ({
@@ -199,17 +201,17 @@ const PixelCharacter = ({
         >
             {/* Mood Icon Bubble */}
             {(moodIcon || isThinking) && (
-                <div className="absolute -top-14 bg-white border-2 border-[#8d6e63] px-2 py-1.5 rounded-xl shadow-lg animate-in zoom-in duration-200 z-[100]">
+                <div className="absolute -top-14 bg-white border-2 px-2 py-1.5 rounded-xl shadow-lg animate-in zoom-in duration-200 z-[100]" style={{ borderColor: bubbleColor }}>
                     {isThinking ? (
                         <div className="flex gap-1 px-1 py-1 items-center justify-center min-w-[24px] h-5">
-                            <div className="w-1 h-1 bg-[#8d6e63] rounded-full animate-bounce [animation-duration:0.8s]"></div>
-                            <div className="w-1 h-1 bg-[#8d6e63] rounded-full animate-bounce [animation-duration:0.8s] [animation-delay:0.2s]"></div>
-                            <div className="w-1 h-1 bg-[#8d6e63] rounded-full animate-bounce [animation-duration:0.8s] [animation-delay:0.4s]"></div>
+                            <div className="w-1 h-1 rounded-full animate-bounce [animation-duration:0.8s]" style={{ backgroundColor: bubbleColor }}></div>
+                            <div className="w-1 h-1 rounded-full animate-bounce [animation-duration:0.8s] [animation-delay:0.2s]" style={{ backgroundColor: bubbleColor }}></div>
+                            <div className="w-1 h-1 rounded-full animate-bounce [animation-duration:0.8s] [animation-delay:0.4s]" style={{ backgroundColor: bubbleColor }}></div>
                         </div>
                     ) : (
                         <span className="text-xl animate-bounce inline-block">{moodIcon}</span>
                     )}
-                    <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white border-r-2 border-b-2 border-[#8d6e63] rotate-45"></div>
+                    <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white border-r-2 border-b-2 rotate-45" style={{ borderColor: bubbleColor }}></div>
                 </div>
             )}
 
@@ -263,7 +265,8 @@ const PixelRoomView = ({
     zoomLevel,
     handleTouchStart,
     handleTouchMove,
-    handleTouchEnd
+    handleTouchEnd,
+    settings
 }: any) => {
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [dragItem, setDragItem] = useState<string | null>(null);
@@ -509,6 +512,7 @@ const PixelRoomView = ({
                             showName={showNames}
                             walkSpeed={character.pixelRoomSettings?.walkSpeed || 0.2}
                             isThinking={isThinking}
+                            bubbleColor={settings.theme.aiBubbleColor || '#8d6e63'}
                         />
                     )}
 
@@ -522,6 +526,7 @@ const PixelRoomView = ({
                             pixelated={false}
                             showName={showNames}
                             walkSpeed={character.pixelRoomSettings?.walkSpeed || 0.2}
+                            bubbleColor={settings.theme.userBubbleColor || '#8d6e63'}
                         />
                     )}
                 </div>
@@ -1489,6 +1494,7 @@ const HomeRoomView: React.FC<HomeRoomViewProps> = ({ character, user, onClose, o
             handleTouchStart={handleTouchStart}
             handleTouchMove={handleTouchMove}
             handleTouchEnd={handleTouchEnd}
+            settings={settings}
         />
 
         {/* SPOKEN TEXT DIALOGUE BOX (BOTTOM) */}

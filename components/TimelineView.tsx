@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { Character, Branch, Message } from '../types';
+import { customConfirm } from './CustomDialog';
 
 interface TimelineViewProps {
   character: Character;
@@ -107,9 +108,9 @@ const TimelineView: React.FC<TimelineViewProps> = ({
     setEditingBranch(null);
   };
 
-  const deleteBranch = () => {
+  const deleteBranch = async () => {
     if (!editingBranch || editingBranch.id === 'main') return;
-    if (window.confirm(`Xóa nhánh "${editingBranch.name}"?`)) {
+    if (await customConfirm(`Xóa nhánh "${editingBranch.name}"?`)) {
       const updated = branches.filter(b => b.id !== editingBranch.id);
       onUpdateBranches(updated);
       if (currentBranchId === editingBranch.id) onSwitchBranch('main');

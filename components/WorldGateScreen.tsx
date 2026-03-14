@@ -3,6 +3,7 @@ import { FirebaseConfig } from '../types';
 import ServerSelectorModal from './ServerSelectorModal';
 import { MigrateTab } from './MigrateTab';
 import { PRESET_SERVERS } from '../constants/servers';
+import { customConfirm } from './CustomDialog';
 
 interface WorldGateScreenProps { 
     onJoin: (id: string, mode: 'offline') => void; 
@@ -451,8 +452,8 @@ const WorldGateScreen: React.FC<WorldGateScreenProps> = ({
                     </p>
                     <div className="flex flex-col sm:flex-row gap-3 items-center justify-center w-full">
                         <button 
-                            onClick={() => {
-                                if (window.confirm("Hành động này sẽ xoá toàn bộ dữ liệu tạm và đăng xuất bạn khỏi các phiên hiện tại. Bạn có chắc chắn muốn tiếp tục?")) {
+                            onClick={async () => {
+                                if (await customConfirm("Hành động này sẽ xoá toàn bộ dữ liệu tạm và đăng xuất bạn khỏi các phiên hiện tại. Bạn có chắc chắn muốn tiếp tục?")) {
                                     localStorage.clear();
                                     sessionStorage.clear();
                                     window.location.reload();

@@ -170,6 +170,8 @@ export interface ThemeConfig {
   chatLayoutStyle?: 'default' | 'immersive' | 'immersive-short';
   userBubbleColor: string;
   aiBubbleColor: string;
+  userBubbleTextColor?: string;
+  aiBubbleTextColor?: string;
   fontFamily?: string;
   fontSize?: number;
   textColor?: string;

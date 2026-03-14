@@ -173,14 +173,17 @@ const CharacterCard: React.FC<CharacterCardProps> = ({ character, onSave, onBack
                                   <i className="fa-solid fa-heart"></i>
                               </div>
                               <div className="flex-1">
-                                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Affection (Hảo cảm)</p>
+                                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Mối quan hệ</p>
                                   <div className="flex items-baseline gap-2">
                                       <span className="text-xl font-black text-slate-800">{formData.relationshipScore}</span>
                                       <span className={`text-[10px] font-bold uppercase ${affinity.color}`}>{affinity.label}</span>
                                   </div>
                               </div>
-                              <div className="px-3 py-1 bg-amber-50 text-amber-600 rounded-lg text-[9px] font-bold uppercase border border-amber-100">
-                                  {formData.mood}
+                              <div className="flex flex-col items-end gap-1">
+                                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tâm trạng</p>
+                                  <div className="px-3 py-1 bg-amber-50 text-amber-600 rounded-lg text-[9px] font-bold uppercase border border-amber-100">
+                                      {formData.mood}
+                                  </div>
                               </div>
                           </div>
                       </div>

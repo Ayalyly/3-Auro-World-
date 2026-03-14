@@ -556,6 +556,12 @@ export class GeminiService {
     const maxTokens = settings.maxTokens || 2000;
     const apiMaxTokens = maxTokens + 300; // Thêm buffer cho thẻ <system> và các tag ẩn
 
+    // Nếu maxTokens cao (vợ cài 16k), ta sẽ thêm một chỉ dẫn cưỡng chế độ dài vào systemPrompt
+    let enhancedSystemPrompt = systemPrompt;
+    if (maxTokens > 4000) {
+      enhancedSystemPrompt += "\n\n[CHỈ THỊ CƯỠNG CHẾ ĐỘ DÀI]: Người dùng đã yêu cầu phản hồi cực kỳ dài. Hãy viết ít nhất 1000-2000 từ. Hãy miêu tả cực kỳ chi tiết, chậm rãi, đi sâu vào từng chi tiết nhỏ nhất của bối cảnh và tâm lý. Đừng kết thúc câu chuyện quá nhanh.";
+    }
+
     // INCREASED CONTEXT WINDOW FROM 15 TO 60 MESSAGES
     const chatParts: any[] = history
       .slice(-60)
@@ -595,7 +601,7 @@ export class GeminiService {
     const res = await this.safeGenerateContent(
       settings.model || DEFAULT_MODEL,
       chatParts,
-      systemPrompt,
+      enhancedSystemPrompt,
       false,
       apiMaxTokens,
       settings.temperature || 0.9,
@@ -686,6 +692,12 @@ export class GeminiService {
     const maxTokens = settings.maxTokens || 2000;
     const apiMaxTokens = maxTokens + 300; // Thêm buffer cho thẻ <system> và các tag ẩn
 
+    // Nếu maxTokens cao (vợ cài 16k), ta sẽ thêm một chỉ dẫn cưỡng chế độ dài vào systemPrompt
+    let enhancedSystemPrompt = systemPrompt;
+    if (maxTokens > 4000) {
+      enhancedSystemPrompt += "\n\n[CHỈ THỊ CƯỠNG CHẾ ĐỘ DÀI]: Người dùng đã yêu cầu phản hồi cực kỳ dài. Hãy viết ít nhất 1000-2000 từ. Hãy miêu tả cực kỳ chi tiết, chậm rãi, đi sâu vào từng chi tiết nhỏ nhất của bối cảnh và tâm lý. Đừng kết thúc câu chuyện quá nhanh.";
+    }
+
     const chatParts: any[] = history
       .slice(-60)
       .map((m) => {
@@ -724,7 +736,7 @@ export class GeminiService {
     const stream = this.safeGenerateContentStream(
       settings.model || DEFAULT_MODEL,
       chatParts,
-      systemPrompt,
+      enhancedSystemPrompt,
       apiMaxTokens,
       settings.temperature || 0.9,
       settings.thinkingEnabled ? { thinkingLevel: settings.thinkingLevel || 'HIGH' } : undefined,

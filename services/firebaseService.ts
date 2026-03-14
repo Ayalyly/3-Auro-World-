@@ -1177,7 +1177,7 @@ export class FirebaseService {
           protectedData.behavior = privacy.personality ? 'LOCKED' : character.behavior;
       }
       if (includedFields.includes('appearance')) {
-          protectedData.appearance = privacy.appearance ? 'LOCKED' : character.appearance;
+          protectedData.appearance = privacy.appearance ? 'LOCKED' : safeEncode(character.appearance);
       }
       if (includedFields.includes('greeting')) {
           protectedData.openingMessage = privacy.greeting ? 'LOCKED' : character.openingMessage;
@@ -1275,6 +1275,7 @@ export class FirebaseService {
           // Explicitly handle encoded fields
           description: safeDecode(charData.description, d.short_description || ''),
           prompt: charData.prompt ? safeDecode(charData.prompt, 'LOCKED') : undefined,
+          appearance: charData.appearance ? safeDecode(charData.appearance, '') : undefined,
           // Ensure critical fields are present
           name: charData.name || d.name,
           avatar: charData.avatar || d.avatar_url,

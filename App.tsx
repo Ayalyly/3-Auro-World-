@@ -38,6 +38,7 @@ import HomeRoomView from './components/HomeRoomView';
 import MainChatView from './components/MainChatView';
 import QuestView from './components/QuestView';
 import MemoriesView from './components/MemoriesView';
+import { CustomDialogProvider, customAlert, customConfirm } from './components/CustomDialog';
 
 
 const DEFAULT_USER: UserProfile = {
@@ -1827,6 +1828,7 @@ export default function App() {
         </div>
       )}
       {renderView()}
+      <CustomDialogProvider />
       {notification && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/40 backdrop-blur-[2px] animate-in fade-in">
           <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-200">

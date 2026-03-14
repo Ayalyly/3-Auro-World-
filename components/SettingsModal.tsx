@@ -2,6 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { AppSettings, Character, UserProfile, Message, AuraExportData, PromptPreset } from '../types';
 import ModelSelectorModal from './ModelSelectorModal';
+import { customConfirm } from './CustomDialog';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -142,7 +143,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
   };
 
   const handleClearCache = async () => {
-    if (window.confirm('Hành động này sẽ xóa bộ nhớ đệm và tải lại ứng dụng để cập nhật phiên bản mới nhất. Bạn có chắc chắn?')) {
+    if (await customConfirm('Hành động này sẽ xóa bộ nhớ đệm và tải lại ứng dụng để cập nhật phiên bản mới nhất. Bạn có chắc chắn?')) {
       if ('serviceWorker' in navigator) {
         try {
           const registrations = await navigator.serviceWorker.getRegistrations();
@@ -169,10 +170,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
+      <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl flex flex-col h-[85vh] md:h-[650px] overflow-hidden border border-slate-200">
         
         {/* Header */}
-        <div className="flex justify-between items-center p-4 border-b border-slate-100">
+        <div className="flex justify-between items-center p-4 border-b border-slate-100 bg-white z-10">
           <h2 className="text-lg font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
             <i className="fa-solid fa-sliders"></i> Cài Đặt
           </h2>
@@ -185,7 +186,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-slate-100 overflow-x-auto">
+        <div className="flex border-b border-slate-100 overflow-x-auto scrollbar-hide no-scrollbar">
           {[{
             id: 'general', label: 'AI Control', icon: 'fa-brain' },
             { id: 'rules', label: 'Rules', icon: 'fa-scroll' },
@@ -196,9 +197,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`px-4 py-3 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 whitespace-nowrap transition-colors ${activeTab === tab.id ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/50' : 'text-slate-400 hover:bg-slate-50'}`}
+              className={`flex-1 min-w-[100px] flex-shrink-0 py-4 text-[11px] font-black uppercase tracking-tight flex flex-col items-center justify-center gap-1 transition-all relative ${
+                activeTab === tab.id 
+                  ? 'text-indigo-600 bg-indigo-50/30' 
+                  : 'text-slate-400 hover:bg-slate-50'
+              }`}
             >
-              <i className={`fa-solid ${tab.icon}`}></i> {tab.label}
+              <i className={`fa-solid ${tab.icon} text-sm`}></i>
+              <span>{tab.label}</span>
+              {activeTab === tab.id && (
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-600 rounded-t-full"></div>
+              )}
             </button>
           ))}
         </div>
@@ -688,17 +697,121 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                 </div>
               </div>
 
-              <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
-                <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">Xem trước:</p>
-                <div 
-                  className="p-3 rounded-lg bg-slate-50 border border-slate-100"
-                  style={{ 
-                    fontFamily: localSettings.theme.fontFamily || 'Inter',
-                    fontSize: `${localSettings.theme.fontSize || 14}px`,
-                    color: localSettings.theme.textColor || '#334155'
-                  }}
-                >
-                  Đây là nội dung tin nhắn mẫu để bạn xem trước phông chữ và màu sắc.
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 uppercase mb-2 block">Màu bong bóng AI</label>
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="color" 
+                      value={localSettings.theme.aiBubbleColor || '#ffffff'}
+                      onChange={e => {
+                        const updated = {
+                          ...localSettings, 
+                          theme: { ...localSettings.theme, aiBubbleColor: e.target.value }
+                        };
+                        setLocalSettings(updated);
+                        onSaveSettings(updated);
+                      }}
+                      className="w-8 h-8 rounded-lg cursor-pointer border-none p-0 overflow-hidden"
+                    />
+                    <span className="text-[10px] font-mono text-slate-500">{localSettings.theme.aiBubbleColor || '#ffffff'}</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 uppercase mb-2 block">Màu chữ AI</label>
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="color" 
+                      value={localSettings.theme.aiBubbleTextColor || localSettings.theme.textColor || '#334155'}
+                      onChange={e => {
+                        const updated = {
+                          ...localSettings, 
+                          theme: { ...localSettings.theme, aiBubbleTextColor: e.target.value }
+                        };
+                        setLocalSettings(updated);
+                        onSaveSettings(updated);
+                      }}
+                      className="w-8 h-8 rounded-lg cursor-pointer border-none p-0 overflow-hidden"
+                    />
+                    <span className="text-[10px] font-mono text-slate-500">{localSettings.theme.aiBubbleTextColor || localSettings.theme.textColor || '#334155'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 uppercase mb-2 block">Màu bong bóng Bạn</label>
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="color" 
+                      value={localSettings.theme.userBubbleColor || '#000000'}
+                      onChange={e => {
+                        const updated = {
+                          ...localSettings, 
+                          theme: { ...localSettings.theme, userBubbleColor: e.target.value }
+                        };
+                        setLocalSettings(updated);
+                        onSaveSettings(updated);
+                      }}
+                      className="w-8 h-8 rounded-lg cursor-pointer border-none p-0 overflow-hidden"
+                    />
+                    <span className="text-[10px] font-mono text-slate-500">{localSettings.theme.userBubbleColor || '#000000'}</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 uppercase mb-2 block">Màu chữ Bạn</label>
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="color" 
+                      value={localSettings.theme.userBubbleTextColor || '#ffffff'}
+                      onChange={e => {
+                        const updated = {
+                          ...localSettings, 
+                          theme: { ...localSettings.theme, userBubbleTextColor: e.target.value }
+                        };
+                        setLocalSettings(updated);
+                        onSaveSettings(updated);
+                      }}
+                      className="w-8 h-8 rounded-lg cursor-pointer border-none p-0 overflow-hidden"
+                    />
+                    <span className="text-[10px] font-mono text-slate-500">{localSettings.theme.userBubbleTextColor || '#ffffff'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 shadow-inner">
+                <p className="text-[10px] font-bold text-slate-400 uppercase mb-3">Xem trước giao diện:</p>
+                <div className="space-y-3">
+                  {/* AI Bubble Preview */}
+                  <div className="flex justify-start">
+                    <div 
+                      className="px-4 py-2 rounded-[18px_18px_18px_4px] shadow-sm border border-black/5 max-w-[80%]"
+                      style={{ 
+                        backgroundColor: localSettings.theme.aiBubbleColor || '#ffffff',
+                        opacity: (localSettings.theme.bubbleOpacity !== undefined ? localSettings.theme.bubbleOpacity : 90) / 100,
+                        fontFamily: localSettings.theme.fontFamily || 'Inter',
+                        fontSize: `${localSettings.theme.fontSize || 14}px`,
+                        color: localSettings.theme.aiBubbleTextColor || localSettings.theme.textColor || '#334155'
+                      }}
+                    >
+                      Chào bạn! Đây là tin nhắn từ AI.
+                    </div>
+                  </div>
+                  {/* User Bubble Preview */}
+                  <div className="flex justify-end">
+                    <div 
+                      className="px-4 py-2 rounded-[18px_18px_4px_18px] shadow-sm border border-white/10 max-w-[80%]"
+                      style={{ 
+                        backgroundColor: localSettings.theme.userBubbleColor || '#000000',
+                        opacity: (localSettings.theme.bubbleOpacity !== undefined ? localSettings.theme.bubbleOpacity : 90) / 100,
+                        fontFamily: localSettings.theme.fontFamily || 'Inter',
+                        fontSize: `${localSettings.theme.fontSize || 14}px`,
+                        color: localSettings.theme.userBubbleTextColor || '#ffffff'
+                      }}
+                    >
+                      Chào AI! Mình đang chỉnh giao diện.
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

@@ -27,6 +27,25 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, character, userA
   const [editText, setEditText] = useState(message.text || '');
   const [isSpeaking, setIsSpeaking] = useState(false);
 
+  // Helper to convert hex to rgba
+  const hexToRgba = (hex: string, opacity: number) => {
+    if (!hex) return 'transparent';
+    try {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      return `rgba(${r}, ${g}, ${b}, ${opacity / 100})`;
+    } catch (e) {
+      return hex;
+    }
+  };
+
+  const bubbleBgColor = theme.bubbleOpacity !== undefined 
+    ? (isAi 
+        ? hexToRgba(theme.aiBubbleColor || '#ffffff', theme.bubbleOpacity) 
+        : hexToRgba(theme.userBubbleColor || '#000000', theme.bubbleOpacity))
+    : (isAi ? theme.aiBubbleColor : theme.userBubbleColor);
+
   // Replace placeholders
   const displayText = (message.text || '')
     .replace(/{{user}}/g, userName)
@@ -271,8 +290,12 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, character, userA
                 style={{ 
                   fontFamily: theme.fontFamily || 'inherit',
                   fontSize: theme.fontSize ? `${theme.fontSize}px` : 'inherit',
-                  color: (theme.chatLayoutStyle === 'immersive' || theme.chatLayoutStyle === 'immersive-short') ? undefined : (isAi ? (theme.textColor || '#334155') : 'inherit'),
-                  backgroundColor: theme.bubbleOpacity !== undefined ? (isAi ? `rgba(255, 255, 255, ${theme.bubbleOpacity / 100})` : `rgba(0, 0, 0, ${theme.bubbleOpacity / 100})`) : undefined
+                  color: (theme.chatLayoutStyle === 'immersive' || theme.chatLayoutStyle === 'immersive-short') 
+                    ? undefined 
+                    : (isAi 
+                        ? (theme.aiBubbleTextColor || theme.textColor || '#334155') 
+                        : (theme.userBubbleTextColor || '#ffffff')),
+                  backgroundColor: bubbleBgColor
                 }}
               >
                 {/* Single Image (Legacy) */}

@@ -48,10 +48,13 @@ export class AffectionManager {
    */
   public static updateScore(character: Character, change: number): Character {
     let currentScore = character.relationshipScore || 0;
-    const maxScore = character.maxScore || 100;
-
+    // Remove the hard cap of 100 to allow for infinite levels (Level = score / 100 + 1)
+    // We only cap at 0 to prevent negative infinity if not desired, 
+    // but some stories might want negative scores for enemies.
+    
     currentScore += change;
-    currentScore = Math.max(0, Math.min(currentScore, maxScore));
+    // Keep a reasonable floor but no ceiling
+    currentScore = Math.max(-1000, currentScore); 
 
     return {
       ...character,

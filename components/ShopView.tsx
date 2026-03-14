@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { InventoryItem, UserProfile, OrderHistory, ShopNPC, Message, Sender, Character, Transaction, AppSettings } from '../types';
 import { ShopService } from '../services/shopService';
 import Modal from './Modal'; // Import the new Modal component
+import { customAlert } from './CustomDialog';
 
 const PRESET_FURNITURE: InventoryItem[] = [
     {
@@ -266,8 +267,8 @@ const ShopView: React.FC<ShopViewProps> = ({ user, character, setUser, onUpdateC
         }
     });
 
-    if (user.money < totalMoney) return alert(`Bạn không đủ ${currency} để mua hàng!`);
-    if ((user.auroCoins || 0) < totalAuro) return alert(`Bạn không đủ Auro Coin để mua hàng!`);
+    if (user.money < totalMoney) return customAlert(`Bạn không đủ ${currency} để mua hàng!`);
+    if ((user.auroCoins || 0) < totalAuro) return customAlert(`Bạn không đủ Auro Coin để mua hàng!`);
 
     const order: OrderHistory = {
       id: "ORD-" + Math.random().toString(36).substr(2, 6).toUpperCase(),

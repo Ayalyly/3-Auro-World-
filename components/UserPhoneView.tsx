@@ -2,6 +2,7 @@ import React from 'react';
 import { UserProfile, UserNPCRelation, Character } from '../types';
 import { GeminiService } from '../services/geminiService';
 import { HuggingFaceService } from '../services/huggingFaceService';
+import { customConfirm } from './CustomDialog';
 
 interface UserPhoneProps {
   user?: UserProfile;
@@ -484,9 +485,9 @@ const UserPhoneView: React.FC<UserPhoneProps> = ({ user, onUpdateUser, onClose, 
       }, 500);
   };
 
-  const handleDeleteUserContact = () => {
+  const handleDeleteUserContact = async () => {
       if (!user || !onUpdateUser || !userSelectedContact || userSelectedContact.npcId.startsWith('new-')) return;
-      if (!window.confirm(`Bạn có chắc muốn xóa NPC ${userSelectedContact.npcName}?`)) return;
+      if (!(await customConfirm(`Bạn có chắc muốn xóa NPC ${userSelectedContact.npcName}?`))) return;
       
       const updatedRelations = (user.npcRelations || []).filter(r => r.npcId !== userSelectedContact.npcId);
       onUpdateUser({ ...user, npcRelations: updatedRelations });

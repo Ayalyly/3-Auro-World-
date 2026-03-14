@@ -4,6 +4,7 @@ import { Character, AuroCardData, CardPrivacySettings } from '../types';
 import { FirebaseService } from '../services/firebaseService';
 import { GeminiService } from '../services/geminiService';
 import { motion, AnimatePresence } from 'framer-motion';
+import { customAlert } from './CustomDialog';
 
 interface AuroCardViewProps {
   character: Character;
@@ -178,7 +179,7 @@ const AuroCardView: React.FC<AuroCardViewProps> = ({ character, onClose, onSave,
             setIsOnline(result.isOnline);
         } catch (e) {
             console.error(e);
-            alert("Lỗi tạo thẻ bài. Vui lòng thử lại.");
+            customAlert("Lỗi tạo thẻ bài. Vui lòng thử lại.");
             onClose();
         } finally {
             setIsLoadingToken(false);
@@ -195,7 +196,7 @@ const AuroCardView: React.FC<AuroCardViewProps> = ({ character, onClose, onSave,
       setIsCapturing(true);
       try {
           const html2canvas = (window as any).html2canvas;
-          if (!html2canvas) { alert("Lỗi thư viện."); return; }
+          if (!html2canvas) { customAlert("Lỗi thư viện."); return; }
 
           const canvas = await html2canvas(cardRef.current, {
               scale: 4, 
@@ -211,7 +212,7 @@ const AuroCardView: React.FC<AuroCardViewProps> = ({ character, onClose, onSave,
           link.click();
       } catch (e) {
           console.error(e);
-          alert("Lỗi khi lưu ảnh.");
+          customAlert("Lỗi khi lưu ảnh.");
       } finally {
           setIsCapturing(false);
       }
@@ -379,7 +380,7 @@ const AuroCardView: React.FC<AuroCardViewProps> = ({ character, onClose, onSave,
                               <button onClick={(e) => {
                                   e.stopPropagation();
                                   navigator.clipboard.writeText(token || '');
-                                  alert("Đã copy mã triệu hồi!");
+                                  customAlert("Đã copy mã triệu hồi!");
                               }} className="text-white/40 hover:text-white ml-2">
                                   <i className="fa-solid fa-copy text-[8px]"></i>
                               </button>
@@ -693,10 +694,10 @@ const AuroCardView: React.FC<AuroCardViewProps> = ({ character, onClose, onSave,
                                 if (result.token) setToken(result.token);
                                 
                                 onSave?.({ ...config, token: result.token });
-                                alert("Đã lưu cấu hình & cập nhật thẻ bài!");
+                                customAlert("Đã lưu cấu hình & cập nhật thẻ bài!");
                             } catch (e) {
                                 console.error(e);
-                                alert("Lỗi khi lưu cấu hình.");
+                                customAlert("Lỗi khi lưu cấu hình.");
                             } finally {
                                 setIsSavingConfig(false);
                             }

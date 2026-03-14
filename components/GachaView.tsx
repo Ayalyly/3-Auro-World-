@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { UserProfile, Character, InventoryItem, AppView, Message, Memory } from '../types';
 import { GeminiService } from '../services/geminiService';
 
@@ -45,27 +45,6 @@ const GachaView: React.FC<GachaViewProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [comboMessage, setComboMessage] = useState<string | null>(null);
   const [showInstructions, setShowInstructions] = useState(false);
-  const [tearProgress, setTearProgress] = useState(0);
-  const tearAudioRef = useRef<HTMLAudioElement | null>(null);
-
-  // Framer Motion Hooks (Must be at top level)
-  const dragX = useMotionValue(0);
-  const tearWidth = useTransform(dragX, [0, 200], ["0%", "100%"]);
-  const bagOpacity = useTransform(dragX, [150, 200], [1, 0]);
-
-  useEffect(() => {
-    tearAudioRef.current = new Audio('https://cdn.pixabay.com/audio/2022/03/15/audio_7385566065.mp3'); // Tearing sound
-    if (tearAudioRef.current) {
-      tearAudioRef.current.volume = 0.5;
-    }
-  }, []);
-
-  const playTearSound = () => {
-    if (tearAudioRef.current) {
-      tearAudioRef.current.currentTime = 0;
-      tearAudioRef.current.play().catch(() => {});
-    }
-  };
 
   const rewardTypes: { type: GachaRewardType; label: string; icon: string; color: string }[] = [
     { type: 'furniture', label: 'Nội thất', icon: '🪑', color: 'bg-[#4a4a4a]' },
@@ -143,7 +122,6 @@ const GachaView: React.FC<GachaViewProps> = ({
     if (isOpening || bagsLeft <= 0) return;
 
     setIsOpening(true);
-    setTearProgress(0); // Reset tear progress
     setCurrentReward(null);
     setComboMessage(null);
 
@@ -396,71 +374,28 @@ const GachaView: React.FC<GachaViewProps> = ({
                 <motion.div 
                   animate={{ y: [0, -10, 0] }} 
                   transition={{ repeat: Infinity, duration: 1 }}
-                  className="absolute -top-16 z-30 flex flex-col items-center pointer-events-none"
+                  className="absolute -top-12 right-4 z-30 flex flex-col items-center"
                 >
-                  <span className="text-[10px] font-black text-white bg-rose-500 px-3 py-1 rounded-full uppercase mb-1 shadow-lg">Quẹt để xé!</span>
-                  <i className="fa-solid fa-hand-pointer text-rose-500 animate-bounce"></i>
+                  <span className="text-[10px] font-black text-white bg-rose-500 px-2 py-1 rounded-md uppercase mb-1">Xé ngay</span>
+                  <i className="fa-solid fa-arrow-down text-rose-500"></i>
                 </motion.div>
               )}
 
-              <div className="relative w-64 h-48">
-                {/* Torn Part (Left) */}
-                <motion.div
-                  style={{ x: useTransform(dragX, [0, 200], [0, -50]) }}
-                  className={`absolute inset-0 bg-gradient-to-br from-pink-400 to-pink-500 rounded-xl shadow-xl flex items-center justify-center border-4 border-pink-300 z-10 overflow-hidden ${isOpening ? 'pointer-events-none' : ''}`}
-                >
-                   {/* Heart Center */}
-                   <div className="w-28 h-28 bg-white rounded-full flex items-center justify-center shadow-inner">
-                    <span className="text-6xl text-pink-500 font-black">?</span>
-                  </div>
-                  
-                  {/* Tear Progress Overlay */}
-                  <motion.div 
-                    style={{ width: tearWidth }}
-                    className="absolute right-0 top-0 bottom-0 bg-white/20 backdrop-blur-[2px] z-20"
-                  />
-                </motion.div>
-
-                {/* Tear Handle / Interaction Area */}
-                {!isOpening && (
-                  <motion.div
-                    drag="x"
-                    dragConstraints={{ left: 0, right: 200 }}
-                    style={{ x: dragX }}
-                    onDragStart={() => playTearSound()}
-                    onDrag={(e, info) => {
-                      // Optional: play sound repeatedly or adjust volume based on speed
-                    }}
-                    onDragEnd={(e, info) => {
-                      if (info.offset.x > 150) {
-                        handleOpenBag();
-                        dragX.set(0);
-                      } else {
-                        dragX.set(0);
-                      }
-                    }}
-                    className="absolute right-0 top-0 bottom-0 w-16 z-30 cursor-grab active:cursor-grabbing flex items-center justify-center"
-                  >
-                    <div className="w-2 h-full flex flex-col justify-evenly py-2 bg-white/30 rounded-full border border-white/20 backdrop-blur-sm">
-                      {Array.from({length: 8}).map((_, i) => <div key={i} className="w-1 h-2 bg-white/60 rounded-full mx-auto"></div>)}
-                    </div>
-                    <div className="absolute -right-2 w-6 h-6 bg-white rounded-full shadow-lg flex items-center justify-center border-2 border-pink-300">
-                      <i className="fa-solid fa-scissors text-[10px] text-pink-500"></i>
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* Opening Animation Overlay */}
-                {isOpening && (
-                  <motion.div 
-                    initial={{ scale: 1 }}
-                    animate={{ scale: [1, 1.1, 0], rotate: [0, 5, -5, 10, -10, 0] }}
-                    className="absolute inset-0 bg-pink-500 rounded-xl z-40 flex items-center justify-center"
-                  >
-                    <div className="text-white text-4xl animate-ping">✨</div>
-                  </motion.div>
-                )}
-              </div>
+              <motion.div
+                onClick={handleOpenBag}
+                animate={isOpening ? { x: [-5, 5, -5, 5, 0], rotate: [-2, 2, -2, 2, 0] } : {}}
+                transition={{ duration: 0.3 }}
+                className={`w-64 h-48 bg-gradient-to-br from-pink-400 to-pink-500 rounded-xl shadow-xl flex items-center justify-center relative cursor-pointer border-4 border-pink-300 ${isOpening ? 'pointer-events-none' : ''}`}
+              >
+                {/* Tear line */}
+                <div className="absolute right-6 top-0 bottom-0 w-2 flex flex-col justify-evenly py-2">
+                  {Array.from({length: 10}).map((_, i) => <div key={i} className="w-1.5 h-3 bg-white/40 rounded-full"></div>)}
+                </div>
+                {/* Heart Center */}
+                <div className="w-28 h-28 bg-white rounded-full flex items-center justify-center shadow-inner">
+                  <span className="text-6xl text-pink-500 font-black">?</span>
+                </div>
+              </motion.div>
             </motion.div>
           ) : currentReward && !isOpeningAll ? (
             <motion.div
